@@ -1,0 +1,73 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Productos</h3>
+  <a href="{% url 'crear_producto' %}" class="btn btn-primary">
+    ➕ Nuevo Producto
+  </a>
+</div>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Producto</th>
+      <th>Categoría</th>
+      <th>Stock (kg)</th>
+      <th>Bulto (kg)</th>
+      <th>Estado</th>
+      <th class="text-center">Acciones</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for producto in productos %}
+    <tr {% if producto.stock_kg <= producto.stock_minimo_kg %}
+        class="table-danger"
+        {% endif %}>
+      <td>{{ producto.nombre }}</td>
+      <td>{{ producto.categoria }}</td>
+      <td>{{ producto.stock_kg }}</td>
+      <td>{{ producto.peso_bulto_kg }}</td>
+      <td>
+        {% if producto.activo %}
+          <span class="badge bg-success">Activo</span>
+        {% else %}
+          <span class="badge bg-secondary">Inactivo</span>
+        {% endif %}
+      </td>
+
+      <td class="text-center">
+
+        <!-- 📊 KARDEX -->
+        <a href="{% url 'kardex_producto' producto.id %}"
+           class="btn btn-sm btn-info">
+          📊
+        </a>
+
+        <!-- ✏️ EDITAR -->
+        <a href="{% url 'editar_producto' producto.id %}"
+           class="btn btn-sm btn-warning">
+           ✏️
+        </a>
+
+        <!-- 🗑️ ELIMINAR -->
+        <a href="{% url 'eliminar_producto' producto.id %}"
+           class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar este producto?')">
+           🗑️
+        </a>
+
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6" class="text-center">
+        No hay productos registrados
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

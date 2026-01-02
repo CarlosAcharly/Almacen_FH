@@ -1,0 +1,16 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>Registrar Merma</h3>
+
+  <form method="post" class="card p-4 shadow">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button class="btn btn-danger mt-3">
+      Registrar Merma
+    </button>
+  </form>
+</div>
+{% endblock %}

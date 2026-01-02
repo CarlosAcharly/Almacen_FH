@@ -1,0 +1,36 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <h3>Choferes</h3>
+  <a href="{% url 'crear_chofer' %}" class="btn btn-primary">➕ Nuevo Chofer</a>
+</div>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Nombre</th>
+      <th>Teléfono</th>
+      <th>Licencia</th>
+      <th class="text-center">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for chofer in choferes %}
+    <tr>
+      <td>{{ chofer.nombre }}</td>
+      <td>{{ chofer.telefono }}</td>
+      <td>{{ chofer.licencia }}</td>
+      <td class="text-center">
+        <a href="{% url 'editar_chofer' chofer.id %}" class="btn btn-sm btn-warning">✏️</a>
+        <a href="{% url 'eliminar_chofer' chofer.id %}" class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar chofer?')">🗑️</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" class="text-center">Sin choferes</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

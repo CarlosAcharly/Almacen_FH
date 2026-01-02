@@ -1,0 +1,58 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>Mermas Registradas</h3>
+  <!-- Formulario de filtros -->
+  <form method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+      <label for="anio" class="form-label">Año:</label>
+      <input type="number" name="anio" id="anio" class="form-control" value="{{ request.GET.anio|default:current_year }}">
+    </div>
+    <div class="col-auto">
+      <label for="mes" class="form-label">Mes:</label>
+      <select name="mes" id="mes" class="form-select">
+        <option value="">Todos</option>
+        {% for m in 1|make_list:12 %}
+        <option value="{{ m }}" {% if request.GET.mes|stringformat:"s" == m|stringformat:"s" %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto align-self-end">
+      <button class="btn btn-primary">Filtrar</button>
+    </div>
+    {% if request.GET.anio %}
+    <div class="col-auto align-self-end">
+      <a href="{% url 'pdf_mermas' request.GET.anio request.GET.mes %}" target="_blank" class="btn btn-danger">Imprimir PDF</a>
+    </div>
+    {% endif %}
+  </form>
+
+  <table class="table table-bordered table-striped mt-3">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Producto</th>
+        <th>Motivo</th>
+        <th>Total (kg)</th>
+        <th>Usuario</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in mermas %}
+      <tr>
+        <td>{{ m.fecha_hora|date:"d/m/Y H:i" }}</td>
+        <td>{{ m.producto }}</td>
+        <td>{{ m.get_motivo_display }}</td>
+        <td>
+          {{ m.kg|floatformat:2 }}
+          {% if m.toneladas %}+ {{ m.toneladas }} t{% endif %}
+          {% if m.bultos %}+ {{ m.bultos }} b{% endif %}
+        </td>
+        <td>{{ m.usuario }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

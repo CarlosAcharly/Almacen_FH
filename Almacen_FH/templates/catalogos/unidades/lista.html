@@ -1,0 +1,44 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <h3>Unidades de Transporte</h3>
+  <a href="{% url 'crear_unidad' %}" class="btn btn-primary">➕ Nueva Unidad</a>
+</div>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Placas</th>
+      <th>Modelo</th>
+      <th>Capacidad (kg)</th>
+      <th>Estado</th>
+      <th class="text-center">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for unidad in unidades %}
+    <tr>
+      <td>{{ unidad.placas }}</td>
+      <td>{{ unidad.modelo }}</td>
+      <td>{{ unidad.capacidad_kg }}</td>
+      <td>
+        {% if unidad.activa %}
+          <span class="badge bg-success">Activa</span>
+        {% else %}
+          <span class="badge bg-secondary">Inactiva</span>
+        {% endif %}
+      </td>
+      <td class="text-center">
+        <a href="{% url 'editar_unidad' unidad.id %}" class="btn btn-sm btn-warning">✏️</a>
+        <a href="{% url 'eliminar_unidad' unidad.id %}" class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar unidad?')">🗑️</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" class="text-center">Sin unidades</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

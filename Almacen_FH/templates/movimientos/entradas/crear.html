@@ -1,0 +1,109 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>Nueva Entrada</h3>
+  {% if form.errors %}
+<div class="alert alert-danger">
+  <strong>Errores:</strong>
+  <ul class="mb-0">
+    {% for field in form %}
+      {% for error in field.errors %}
+        <li>{{ field.label }}: {{ error }}</li>
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+
+  <form method="post" id="entradaForm">
+    {% csrf_token %}
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Producto</label>
+        <select name="producto" id="id_producto" class="form-select">
+          {% for p in productos %}
+            <option value="{{ p.id }}" data-peso="{{ p.peso_por_bulto|default:0 }}">
+              {{ p.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        {{ form.proveedor.label_tag }}
+        {{ form.proveedor }}
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        {{ form.kg.label_tag }}
+        {{ form.kg }}
+      </div>
+      <div class="col-md-4">
+        {{ form.toneladas.label_tag }}
+        {{ form.toneladas }}
+      </div>
+      <div class="col-md-4">
+        {{ form.bultos.label_tag }}
+        {{ form.bultos }}
+      </div>
+    </div>
+
+    <!-- TOTAL -->
+    <div class="alert alert-info">
+      <strong>Total calculado:</strong>
+      <span id="totalKg">0.00</span> kg
+    </div>
+
+    <button class="btn btn-success">Guardar Entrada</button>
+    <a href="{% url 'lista_productos' %}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+
+<script>
+const kgInput = document.getElementById("id_kg");
+const tonInput = document.getElementById("id_toneladas");
+const bultosInput = document.getElementById("id_bultos");
+const productoSelect = document.getElementById("id_producto");
+const totalSpan = document.getElementById("totalKg");
+
+let pesoPorBulto = 0;
+
+function calcularTotal() {
+  const kg = parseFloat(kgInput.value) || 0;
+  const ton = parseFloat(tonInput.value) || 0;
+  const bultos = parseFloat(bultosInput.value) || 0;
+
+  const total = kg + (ton * 1000) + (bultos * pesoPorBulto);
+  totalSpan.textContent = total.toFixed(2);
+}
+
+kgInput.addEventListener("input", calcularTotal);
+tonInput.addEventListener("input", calcularTotal);
+bultosInput.addEventListener("input", calcularTotal);
+
+productoSelect.addEventListener("change", () => {
+  const option = productoSelect.options[productoSelect.selectedIndex];
+  pesoPorBulto = parseFloat(option.dataset.peso) || 0;
+
+  if (pesoPorBulto === 0) {
+    bultosInput.value = '';
+    bultosInput.disabled = true;
+  } else {
+    bultosInput.disabled = false;
+  }
+
+  calcularTotal();
+});
+
+// calcular al cargar
+productoSelect.dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

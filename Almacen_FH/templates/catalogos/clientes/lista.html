@@ -1,0 +1,44 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <h3>Clientes</h3>
+  <a href="{% url 'crear_cliente' %}" class="btn btn-primary">➕ Nuevo Cliente</a>
+</div>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Nombre</th>
+      <th>Teléfono</th>
+      <th>Dirección</th>
+      <th>Estado</th>
+      <th class="text-center">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cliente in clientes %}
+    <tr>
+      <td>{{ cliente.nombre }}</td>
+      <td>{{ cliente.telefono }}</td>
+      <td>{{ cliente.direccion }}</td>
+      <td>
+        {% if cliente.activo %}
+          <span class="badge bg-success">Activo</span>
+        {% else %}
+          <span class="badge bg-secondary">Inactivo</span>
+        {% endif %}
+      </td>
+      <td class="text-center">
+        <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-sm btn-warning">✏️</a>
+        <a href="{% url 'eliminar_cliente' cliente.id %}" class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar cliente?')">🗑️</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" class="text-center">Sin clientes</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

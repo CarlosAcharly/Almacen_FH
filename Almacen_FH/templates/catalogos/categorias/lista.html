@@ -1,0 +1,34 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <h3>Categorías</h3>
+  <a href="{% url 'crear_categoria' %}" class="btn btn-primary">➕ Nueva Categoría</a>
+</div>
+
+<table class="table table-bordered table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Nombre</th>
+      <th>Descripción</th>
+      <th class="text-center">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for categoria in categorias %}
+    <tr>
+      <td>{{ categoria.nombre }}</td>
+      <td>{{ categoria.descripcion }}</td>
+      <td class="text-center">
+        <a href="{% url 'editar_categoria' categoria.id %}" class="btn btn-sm btn-warning">✏️</a>
+        <a href="{% url 'eliminar_categoria' categoria.id %}" class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar categoría?')">🗑️</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3" class="text-center">Sin categorías</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

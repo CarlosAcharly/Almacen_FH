@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 5px; }
+    th { background: #eee; }
+  </style>
+</head>
+<body>
+
+<h2>{{ titulo }}</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Producto</th>
+      <th>Motivo</th>
+      <th>Kg</th>
+      <th>Usuario</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in mermas %}
+    <tr>
+      <td>{{ m.fecha_hora|date:"d/m/Y" }}</td>
+      <td>{{ m.producto }}</td>
+      <td>{{ m.get_motivo_display }}</td>
+      <td>{{ m.kg }}</td>
+      <td>{{ m.usuario }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+</body>
+</html>

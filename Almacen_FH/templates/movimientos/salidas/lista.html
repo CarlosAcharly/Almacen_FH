@@ -1,0 +1,55 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📋 Salidas de Almacén</h5>
+            <a href="{% url 'nueva_salida' %}" class="btn btn-light btn-sm">
+                ➕ Nueva Salida
+            </a>
+        </div>
+
+        <div class="card-body">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Cantidad (kg)</th>
+                        <th>Destino</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for salida in salidas %}
+                    <tr>
+                        <td class="text-center">{{ salida.fecha_hora|date:"d/m/Y H:i" }}</td>
+                        <td>{{ salida.producto.nombre }}</td>
+                        <td class="text-end">
+                            {{ salida.cantidad_total_kg }} kg
+                        </td>
+                        <td>
+                            {% if salida.tipo == "VENTA" %}
+                                {{ salida.cliente.nombre|default:"Cliente no asignado" }}
+                            {% elif salida.tipo == "TRASLADO" %}
+                                {{ salida.lugar.nombre|default:"Lugar no asignado" }}
+                            {% else %}
+                                Salida Pendiente
+                            {% endif %}
+                        </td>
+                        <td>{{ salida.usuario.get_full_name|default:salida.usuario.username }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            No hay salidas registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
