@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+{% block title %}Dietas{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">🐖 Dietas disponibles</h4>
+
+    <!-- Botón NUEVA DIETA -->
+    <a href="{% url 'crear_dieta' %}" class="btn btn-success">
+        ➕ Nueva dieta
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Nombre</th>
+                <th>Etapa</th>
+                <th>Total Kg</th>
+                <th width="220">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dieta in dietas %}
+            <tr>
+                <td>{{ dieta.nombre }}</td>
+                <td>{{ dieta.get_etapa_display }}</td>
+                <td>{{ dieta.total_kg }}</td>
+                <td class="text-center">
+
+                    <!-- Editar dieta -->
+                    <a href="{% url 'editar_dieta' dieta.id %}"
+                       class="btn btn-sm btn-primary mb-1">
+                        ✏️ Editar
+                    </a>
+
+                    <!-- Preparar dieta -->
+                    <a href="{% url 'preparar_dieta' dieta.id %}"
+                       class="btn btn-sm btn-warning mb-1"
+                       onclick="return confirm('¿Deseas preparar esta dieta y descontar el stock?')">
+                        🥣 Preparar
+                    </a>
+
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">
+                    No hay dietas registradas
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

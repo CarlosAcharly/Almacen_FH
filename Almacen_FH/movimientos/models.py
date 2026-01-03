@@ -21,9 +21,9 @@ def calcular_total_kg(producto, kg, toneladas, bultos):
         )
 
     return (
-        Decimal(kg) +
-        (Decimal(toneladas) * Decimal(1000)) +
-        (Decimal(bultos) * Decimal(peso_bulto or 0))
+        Decimal(kg or 0) +
+        (Decimal(toneladas or 0) * Decimal(1000)) +
+        (Decimal(bultos or 0) * Decimal(peso_bulto or 0))
     )
 
 
@@ -32,7 +32,15 @@ def calcular_total_kg(producto, kg, toneladas, bultos):
 # =========================
 class Entrada(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
+
+    # 🔥 CLAVE: proveedor opcional (dietas, ajustes internos)
+    proveedor = models.ForeignKey(
+        Proveedor,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+
     fecha_hora = models.DateTimeField(auto_now_add=True)
 
     kg = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -41,8 +49,17 @@ class Entrada(models.Model):
 
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
 
+    def clean(self):
+        total_kg = calcular_total_kg(
+            self.producto, self.kg, self.toneladas, self.bultos
+        )
+
+        if total_kg <= 0:
+            raise ValidationError("La entrada debe ser mayor a 0 kg")
+
     def save(self, *args, **kwargs):
         es_nuevo = self.pk is None
+        self.clean()
 
         if es_nuevo:
             total_kg = calcular_total_kg(
@@ -53,6 +70,10 @@ class Entrada(models.Model):
             self.producto.save()
 
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        origenorei = self.proveedor or "Interno / Dieta"
+        return f"Entrada {self.producto} - {origenorei}"
 
 
 # =========================
@@ -82,13 +103,15 @@ class Salida(models.Model):
 
     @property
     def cantidad_total_kg(self):
-        """Calcula la cantidad total en kg considerando kg, toneladas y bultos"""
-        return (self.kg or 0) + (self.toneladas or 0) * 1000 + (
-            (self.bultos or 0) * (self.producto.peso_por_bulto or 0)
+        return calcular_total_kg(
+            self.producto, self.kg, self.toneladas, self.bultos
         )
 
     def clean(self):
         total_kg = self.cantidad_total_kg
+
+        if total_kg <= 0:
+            raise ValidationError("La salida debe ser mayor a 0 kg")
 
         if total_kg > self.producto.stock_kg:
             raise ValidationError(
@@ -97,16 +120,16 @@ class Salida(models.Model):
 
     def save(self, *args, **kwargs):
         es_nuevo = self.pk is None
+        self.clean()
 
         if es_nuevo:
-            self.clean()  # Validar stock antes de guardar
-
-            # Restar del stock del producto
             self.producto.stock_kg -= self.cantidad_total_kg
             self.producto.save()
 
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"Salida {self.tipo} - {self.producto}"
 
 
 # =========================

@@ -2,6 +2,9 @@ from django import forms
 from .models import Entrada, Salida
 from .models import Merma
 
+# =========================
+# ENTRADAS
+# =========================
 class EntradaForm(forms.ModelForm):
     class Meta:
         model = Entrada
@@ -16,10 +19,26 @@ class EntradaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['bultos'].required = False
-        self.fields['bultos'].initial = 0
+
+        # Bultos opcional por defecto
+        if 'bultos' in self.fields:
+            self.fields['bultos'].required = False
+            self.fields['bultos'].initial = 0
+
+        producto = (
+            self.initial.get('producto')
+            or getattr(self.instance, 'producto', None)
+        )
+
+        # 👉 Si es DIETA: solo KG
+        if producto and producto.categoria.nombre == "Dietas":
+            self.fields.pop('bultos', None)
+            self.fields.pop('toneladas', None)
 
 
+# =========================
+# SALIDAS
+# =========================
 class SalidaForm(forms.ModelForm):
     class Meta:
         model = Salida
@@ -36,29 +55,51 @@ class SalidaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Bultos opcional
-        self.fields['bultos'].required = False
-        self.fields['bultos'].initial = 0
+
+        if 'bultos' in self.fields:
+            self.fields['bultos'].required = False
+            self.fields['bultos'].initial = 0
+
+        producto = (
+            self.initial.get('producto')
+            or getattr(self.instance, 'producto', None)
+        )
+
+        # 👉 Dietas solo KG
+        if producto and producto.categoria.nombre == "Dietas":
+            self.fields.pop('bultos', None)
+            self.fields.pop('toneladas', None)
 
     def clean(self):
         cleaned_data = super().clean()
         producto = cleaned_data.get('producto')
+
+        if not producto:
+            return cleaned_data
+
         kg = cleaned_data.get('kg') or 0
         toneladas = cleaned_data.get('toneladas') or 0
         bultos = cleaned_data.get('bultos') or 0
 
-        # Asegurarnos de que peso_por_bulto no sea None
-        peso_por_bulto = getattr(producto, 'peso_por_bulto', 0) or 0
+        # 👉 Cálculo distinto para dietas
+        if producto.categoria.nombre == "Dietas":
+            total_kg = kg
+        else:
+            peso_por_bulto = producto.peso_por_bulto or 0
+            total_kg = kg + (toneladas * 1000) + (bultos * peso_por_bulto)
 
-        total_kg = kg + toneladas * 1000 + bultos * peso_por_bulto
-
-        if producto and total_kg > getattr(producto, 'stock_kg', 0):
+        if total_kg > producto.stock_kg:
             raise forms.ValidationError(
-                f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_kg} kg"
+                f"Stock insuficiente para {producto.nombre}. "
+                f"Disponible: {producto.stock_kg} kg"
             )
+
         return cleaned_data
 
 
+# =========================
+# MERMAS
+# =========================
 class MermaForm(forms.ModelForm):
     class Meta:
         model = Merma
@@ -71,5 +112,17 @@ class MermaForm(forms.ModelForm):
             'bultos',
         ]
         widgets = {
-            'descripcion': forms.Textarea(attrs={'rows': 3}),
+            'producto': forms.Select(attrs={'class': 'form-select'}),
+            'motivo': forms.Select(attrs={'class': 'form-select'}),
+            'descripcion': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'toneladas': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'bultos': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if 'bultos' in self.fields:
+            self.fields['bultos'].required = False
+            self.fields['bultos'].initial = 0

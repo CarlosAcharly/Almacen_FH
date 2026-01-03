@@ -1,0 +1,87 @@
+{% extends "layout/base.html" %}
+{% load dietas_extras %}
+
+{% block title %}Editar Dieta{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">
+    🐖 Dieta: {{ dieta.nombre }} — {{ dieta.get_etapa_display }}
+</h4>
+
+<!-- FORMULARIO PARA EDITAR / GUARDAR DIETA -->
+<form method="post">
+    {% csrf_token %}
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Ingrediente</th>
+                    <th width="180">Kg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ingrediente in ingredientes %}
+                <tr>
+                    <td>{{ ingrediente.nombre }}</td>
+                    <td>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="kg_{{ ingrediente.id }}"
+                            class="form-control kg-input"
+                            value="{{ detalles|get_item:ingrediente.id|default:0 }}"
+                        >
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-secondary">
+                <tr>
+                    <th>Total (kg)</th>
+                    <th>
+                        <input
+                            type="text"
+                            id="totalKg"
+                            class="form-control fw-bold"
+                            readonly
+                        >
+                    </th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <button class="btn btn-primary mt-3">
+        💾 Guardar dieta
+    </button>
+</form>
+
+<!-- FORMULARIO PARA PREPARAR DIETA -->
+<form method="post"
+      action="{% url 'preparar_dieta' dieta.id %}"
+      class="mt-2"
+      onsubmit="return confirm('¿Seguro que deseas preparar esta dieta? Se afectará el stock.')">
+    {% csrf_token %}
+    <button class="btn btn-success">
+        ⚙️ Agregar a stock de dieta
+    </button>
+</form>
+
+<script>
+    function recalcularTotal() {
+        let total = 0;
+        document.querySelectorAll('.kg-input').forEach(input => {
+            total += parseFloat(input.value || 0);
+        });
+        document.getElementById('totalKg').value = total.toFixed(2);
+    }
+
+    document.querySelectorAll('.kg-input').forEach(input => {
+        input.addEventListener('input', recalcularTotal);
+    });
+
+    recalcularTotal();
+</script>
+{% endblock %}

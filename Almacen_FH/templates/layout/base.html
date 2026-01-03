@@ -65,11 +65,14 @@
 
         <ul class="nav flex-column">
 
+            <!-- DASHBOARD -->
             <li class="nav-item">
                 <a class="nav-link" href="#">
                     <i class="bi bi-speedometer2 me-2"></i> Dashboard
                 </a>
             </li>
+
+            <!-- MOVIMIENTOS -->
             <li class="nav-item mt-3 text-uppercase text-muted small ms-3">
                 Movimientos
             </li>
@@ -86,8 +89,25 @@
                 </a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link" href="/movimientos/mermas/">
+                    <i class="bi bi-exclamation-triangle me-2"></i> Mermas
+                </a>
+            </li>
 
-            <li class="nav-item mt-2 text-uppercase text-muted small ms-3">
+            <!-- PRODUCCIÓN / DIETAS -->
+            <li class="nav-item mt-3 text-uppercase text-muted small ms-3">
+                Producción
+            </li>
+
+            <li class="nav-item">
+    <a class="nav-link" href="{% url 'lista_dietas' %}">
+        <i class="bi bi-basket-fill me-2"></i> Dietas
+    </a>
+</li>
+
+            <!-- CATÁLOGOS -->
+            <li class="nav-item mt-3 text-uppercase text-muted small ms-3">
                 Catálogos
             </li>
 
@@ -114,6 +134,7 @@
                     <i class="bi bi-tags me-2"></i> Categorías
                 </a>
             </li>
+
             <li class="nav-item">
                 <a class="nav-link" href="/catalogos/lugares/">
                     <i class="bi bi-geo-alt me-2"></i> Lugares
@@ -129,13 +150,6 @@
             <li class="nav-item">
                 <a class="nav-link" href="/catalogos/unidades/">
                     <i class="bi bi-truck-front me-2"></i> Unidades
-                </a>
-            </li>
-
-            
-            <li class="nav-item">
-                <a class="nav-link" href="/movimientos/mermas/">
-                    <i class="bi bi-exclamation-triangle me-2"></i> Mermas
                 </a>
             </li>
 

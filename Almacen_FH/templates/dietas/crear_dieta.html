@@ -1,0 +1,28 @@
+{% extends "layout/base.html" %}
+{% block title %}Nueva Dieta{% endblock %}
+
+{% block content %}
+<h4>➕ Nueva Dieta</h4>
+
+<form method="post" class="card p-4 shadow-sm">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        {{ form.nombre.label_tag }}
+        {{ form.nombre }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.etapa.label_tag }}
+        {{ form.etapa }}
+    </div>
+
+    <button class="btn btn-success">
+        Crear dieta
+    </button>
+
+    <a href="{% url 'lista_dietas' %}" class="btn btn-secondary">
+        Cancelar
+    </a>
+</form>
+{% endblock %}
