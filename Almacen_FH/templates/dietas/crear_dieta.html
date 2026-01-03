@@ -1,28 +1,48 @@
 {% extends "layout/base.html" %}
+{% load dietas_extras %}
+
 {% block title %}Nueva Dieta{% endblock %}
 
 {% block content %}
-<h4>➕ Nueva Dieta</h4>
 
-<form method="post" class="card p-4 shadow-sm">
-    {% csrf_token %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
 
-    <div class="mb-3">
-        {{ form.nombre.label_tag }}
-        {{ form.nombre }}
+        <div class="glass-form">
+
+            <h5 class="glass-form-title">
+                🐖 Crear nueva dieta
+            </h5>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="glass-label">Nombre</label>
+                    {{ form.nombre|add_class:"glass-input form-control" }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="glass-label">Etapa</label>
+                    {{ form.etapa|add_class:"glass-input form-select" }}
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{% url 'lista_dietas' %}"
+                       class="btn glass-btn glass-btn-secondary">
+                        Cancelar
+                    </a>
+
+                    <button class="btn glass-btn glass-btn-primary">
+                        💾 Crear dieta
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
     </div>
+</div>
 
-    <div class="mb-3">
-        {{ form.etapa.label_tag }}
-        {{ form.etapa }}
-    </div>
-
-    <button class="btn btn-success">
-        Crear dieta
-    </button>
-
-    <a href="{% url 'lista_dietas' %}" class="btn btn-secondary">
-        Cancelar
-    </a>
-</form>
 {% endblock %}

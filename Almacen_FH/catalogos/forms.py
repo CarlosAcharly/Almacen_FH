@@ -8,7 +8,13 @@ from .models import (
 class CategoriaForm(forms.ModelForm):
     class Meta:
         model = Categoria
-        fields = '__all__'
+        fields = ['nombre']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control glass-input',
+                'placeholder': 'Nombre de la categoría'
+            })
+        }
 
 
 class ProductoForm(forms.ModelForm):
@@ -18,14 +24,20 @@ class ProductoForm(forms.ModelForm):
             'nombre',
             'categoria',
             'descripcion',
-            #'peso_bulto_kg',
             'stock_kg',
-            #'stock_minimo_kg',
             'activo'
         ]
         widgets = {
-            'descripcion': forms.Textarea(attrs={'rows': 3}),
+            'nombre': forms.TextInput(attrs={'class': 'glass-input'}),
+            'categoria': forms.Select(attrs={'class': 'glass-input'}),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'glass-input',
+                'rows': 3
+            }),
+            'stock_kg': forms.NumberInput(attrs={'class': 'glass-input'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
 
 
 class ProveedorForm(forms.ModelForm):
@@ -39,17 +51,39 @@ class ClienteForm(forms.ModelForm):
         model = Cliente
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-control glass-input'
+            })
+
 
 class LugarForm(forms.ModelForm):
     class Meta:
         model = Lugar
         fields = '__all__'
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-control glass-input'
+            })
 
 
 class ChoferForm(forms.ModelForm):
     class Meta:
         model = Chofer
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-control glass-input'
+            })
+
 
 
 class UnidadForm(forms.ModelForm):
