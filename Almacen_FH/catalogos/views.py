@@ -1,19 +1,52 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from .models import Proveedor, Cliente, Chofer, UnidadTransporte, Lugar, Categoria, Producto
 from .forms import ProveedorForm, ClienteForm, ChoferForm, UnidadTransporte, LugarForm, CategoriaForm, ProductoForm, UnidadForm 
 
 
-#LISTA
+# =========================
+# LISTA + BUSCADOR + PAGINADOR
+# =========================
 def lista_productos(request):
-    productos = Producto.objects.all().order_by('nombre')
+    q = request.GET.get('q', '').strip()
+    categoria_id = request.GET.get('categoria', '')
+    per_page = int(request.GET.get('per_page', 15))
+
+    productos = Producto.objects.select_related('categoria').all()
+
+    # 🔍 Buscar por nombre
+    if q:
+        productos = productos.filter(nombre__icontains=q)
+
+    # 🗂️ Filtrar por categoría
+    if categoria_id:
+        productos = productos.filter(categoria_id=categoria_id)
+
+    productos = productos.order_by('nombre')
+
+    # 📄 Paginación
+    paginator = Paginator(productos, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    categorias = Categoria.objects.all()
+
     return render(request, 'catalogos/productos/lista.html', {
-        'productos': productos
+        'page_obj': page_obj,
+        'categorias': categorias,
+        'q': q,
+        'categoria_id': categoria_id,
+        'per_page': per_page,
+        'per_page_options': [15, 25, 40],
     })
 
 
-#CREAR
+# =========================
+# CREAR
+# =========================
 def crear_producto(request):
     form = ProductoForm(request.POST or None)
+
     if form.is_valid():
         form.save()
         return redirect('lista_productos')
@@ -23,7 +56,9 @@ def crear_producto(request):
     })
 
 
-#EDITAR
+# =========================
+# EDITAR
+# =========================
 def editar_producto(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     form = ProductoForm(request.POST or None, instance=producto)
@@ -37,7 +72,9 @@ def editar_producto(request, pk):
     })
 
 
-#ELIMINAR
+# =========================
+# ELIMINAR
+# =========================
 def eliminar_producto(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     producto.delete()

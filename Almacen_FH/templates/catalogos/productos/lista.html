@@ -2,72 +2,141 @@
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h3>Productos</h3>
+  <h3>📦 Productos</h3>
   <a href="{% url 'crear_producto' %}" class="btn btn-primary">
     ➕ Nuevo Producto
   </a>
 </div>
 
-<table class="table table-bordered table-hover">
-  <thead class="table-dark">
-    <tr>
-      <th>Producto</th>
-      <th>Categoría</th>
-      <th>Stock (kg)</th>
-      <th>Bulto (kg)</th>
-      <th>Estado</th>
-      <th class="text-center">Acciones</th>
-    </tr>
-  </thead>
+<!-- 🔍 BUSCADOR -->
+<div class="glass-card mb-4">
+  <form method="get" class="row g-3 align-items-end">
 
-  <tbody>
-    {% for producto in productos %}
-    <tr {% if producto.stock_kg <= producto.stock_minimo_kg %}
-        class="table-danger"
-        {% endif %}>
-      <td>{{ producto.nombre }}</td>
-      <td>{{ producto.categoria }}</td>
-      <td>{{ producto.stock_kg }}</td>
-      <td>{{ producto.peso_bulto_kg }}</td>
-      <td>
-        {% if producto.activo %}
-          <span class="badge bg-success">Activo</span>
-        {% else %}
-          <span class="badge bg-secondary">Inactivo</span>
-        {% endif %}
-      </td>
+    <div class="col-md-4">
+      <label class="glass-label">Buscar</label>
+      <input
+        type="text"
+        name="q"
+        class="form-control glass-input"
+        placeholder="Nombre del producto"
+        value="{{ q }}"
+      >
+    </div>
 
-      <td class="text-center">
+    <div class="col-md-3">
+      <label class="glass-label">Categoría</label>
+      <select name="categoria" class="form-select glass-input">
+        <option value="">Todas</option>
+        {% for cat in categorias %}
+          <option value="{{ cat.id }}"
+            {% if categoria_id|stringformat:"s" == cat.id|stringformat:"s" %}
+              selected
+            {% endif %}
+          >
+            {{ cat.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
 
-        <!-- 📊 KARDEX -->
-        <a href="{% url 'kardex_producto' producto.id %}"
-           class="btn btn-sm btn-info">
-          📊
+    <div class="col-md-3">
+      <label class="glass-label">Mostrar</label>
+      <select name="per_page" class="form-select glass-input" onchange="this.form.submit()">
+        {% for option in per_page_options %}
+          <option value="{{ option }}"
+            {% if per_page == option %}selected{% endif %}>
+            {{ option }} productos
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-2 d-grid">
+      <button class="btn glass-btn glass-btn-primary">
+        🔍 Buscar
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<!-- 📋 TABLA -->
+<div class="glass-card">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-dark">
+      <tr>
+        <th>Producto</th>
+        <th>Categoría</th>
+        <th>Stock (kg)</th>
+        <th>Estado</th>
+        <th class="text-center">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for producto in page_obj %}
+      <tr {% if producto.stock_kg <= producto.stock_minimo_kg %}class="table-danger"{% endif %}>
+        <td>{{ producto.nombre }}</td>
+        <td>{{ producto.categoria }}</td>
+        <td>{{ producto.stock_kg }}</td>
+        <td>
+          {% if producto.activo %}
+            <span class="badge bg-success">Activo</span>
+          {% else %}
+            <span class="badge bg-secondary">Inactivo</span>
+          {% endif %}
+        </td>
+
+        <td class="text-center">
+          <a href="{% url 'kardex_producto' producto.id %}" class="btn btn-sm btn-info">📊</a>
+          <a href="{% url 'editar_producto' producto.id %}" class="btn btn-sm btn-warning">✏️</a>
+          <a href="{% url 'eliminar_producto' producto.id %}"
+             class="btn btn-sm btn-danger"
+             onclick="return confirm('¿Eliminar este producto?')">
+             🗑️
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center py-4">
+          No hay productos registrados
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- 📄 PAGINADOR -->
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link"
+           href="?page={{ page_obj.previous_page_number }}&q={{ q }}&categoria={{ categoria_id }}&per_page={{ per_page }}">
+           ⬅
         </a>
+      </li>
+    {% endif %}
 
-        <!-- ✏️ EDITAR -->
-        <a href="{% url 'editar_producto' producto.id %}"
-           class="btn btn-sm btn-warning">
-           ✏️
+    <li class="page-item active">
+      <span class="page-link">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
+    </li>
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link"
+           href="?page={{ page_obj.next_page_number }}&q={{ q }}&categoria={{ categoria_id }}&per_page={{ per_page }}">
+           ➡
         </a>
+      </li>
+    {% endif %}
 
-        <!-- 🗑️ ELIMINAR -->
-        <a href="{% url 'eliminar_producto' producto.id %}"
-           class="btn btn-sm btn-danger"
-           onclick="return confirm('¿Eliminar este producto?')">
-           🗑️
-        </a>
-
-      </td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="6" class="text-center">
-        No hay productos registrados
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+  </ul>
+</nav>
 
 {% endblock %}
