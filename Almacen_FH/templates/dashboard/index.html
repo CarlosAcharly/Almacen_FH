@@ -1,0 +1,156 @@
+{% extends "layout/base.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </h3>
+
+    <form method="get" class="d-flex gap-2">
+      <select name="periodo" class="form-select" onchange="this.form.submit()">
+        <option value="diario" {% if periodo == 'diario' %}selected{% endif %}>Diario</option>
+        <option value="semanal" {% if periodo == 'semanal' %}selected{% endif %}>Semanal</option>
+        <option value="mensual" {% if periodo == 'mensual' %}selected{% endif %}>Mensual</option>
+        <option value="anual" {% if periodo == 'anual' %}selected{% endif %}>Anual</option>
+      </select>
+    </form>
+  </div>
+
+  <!-- 🚨 ALERTAS VISUALES -->
+  {% if productos_criticos or productos_bajo_stock %}
+  <div class="row mb-4">
+
+    {% if productos_criticos %}
+    <div class="col-md-6">
+      <div class="alert alert-danger shadow-sm">
+        <h6 class="fw-bold mb-2">🔥 Productos agotados</h6>
+        <ul class="mb-0">
+          {% for p in productos_criticos %}
+            <li>{{ p.nombre }} — <strong>0 kg</strong></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if productos_bajo_stock %}
+    <div class="col-md-6">
+      <div class="alert alert-warning shadow-sm">
+        <h6 class="fw-bold mb-2">⚠️ Stock bajo</h6>
+        <ul class="mb-0">
+          {% for p in productos_bajo_stock %}
+            <li>
+              {{ p.nombre }} — {{ p.stock_kg }} kg
+              (mín: {{ p.stock_minimo_kg }} kg)
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+  <!-- KPI CARDS -->
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="text-muted">Entradas Totales</h6>
+          <h3 class="fw-bold text-success">{{ total_entradas }} kg</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="text-muted">Salidas Totales</h6>
+          <h3 class="fw-bold text-danger">{{ total_salidas }} kg</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="text-muted">Productos</h6>
+          <h3 class="fw-bold text-primary">{{ productos.count }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 {% if balance < 0 %}bg-danger text-white{% else %}bg-light{% endif %}">
+        <div class="card-body">
+          <h6 class="text-muted">Balance</h6>
+          <h3 class="fw-bold">
+            {{ balance }} kg
+          </h3>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLA DE PRODUCTOS -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white fw-bold">
+      <i class="bi bi-box-seam"></i> Stock por Producto
+    </div>
+
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Producto</th>
+            <th class="text-end">Stock (kg)</th>
+            <th class="text-center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in productos %}
+          <tr class="{% if p.stock_kg == 0 %}table-danger{% elif p.stock_kg <= p.stock_minimo_kg %}table-warning{% endif %}">
+            <td>{{ p.nombre }}</td>
+            <td class="text-end">{{ p.stock_kg }}</td>
+            <td class="text-center">
+              {% if p.stock_kg == 0 %}
+                <span class="badge bg-danger px-3">🔥 Agotado</span>
+              {% elif p.stock_kg <= p.stock_minimo_kg %}
+                <span class="badge bg-warning text-dark px-3">⚠️ Bajo</span>
+              {% else %}
+                <span class="badge bg-success px-3">✔ Normal</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-3">
+              No hay productos registrados
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ACCIONES -->
+  <div class="d-flex gap-2">
+    <a href="{% url 'pdf_entradas' %}" class="btn btn-outline-success">
+      <i class="bi bi-file-earmark-pdf"></i> Entradas PDF
+    </a>
+
+    <a href="{% url 'pdf_salidas' %}" class="btn btn-outline-danger">
+      <i class="bi bi-file-earmark-pdf"></i> Salidas PDF
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

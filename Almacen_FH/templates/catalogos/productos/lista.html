@@ -68,7 +68,7 @@
         <th>Producto</th>
         <th>Categoría</th>
         <th>Stock (kg)</th>
-        <th>Estado</th>
+        <th class="text-center">Estado</th>
         <th class="text-center">Acciones</th>
       </tr>
     </thead>
@@ -79,11 +79,21 @@
         <td>{{ producto.nombre }}</td>
         <td>{{ producto.categoria }}</td>
         <td>{{ producto.stock_kg }}</td>
-        <td>
-          {% if producto.activo %}
-            <span class="badge bg-success">Activo</span>
+
+        <!-- ✅ ESTADO VISUAL DE STOCK -->
+        <td class="text-center">
+          {% if producto.stock_kg == 0 %}
+            <span class="badge bg-danger px-3 py-2">
+              🔥 AGOTADO
+            </span>
+          {% elif producto.stock_kg <= producto.stock_minimo_kg %}
+            <span class="badge bg-warning text-dark px-3 py-2">
+              ⚠️ BAJO
+            </span>
           {% else %}
-            <span class="badge bg-secondary">Inactivo</span>
+            <span class="badge bg-success px-3 py-2">
+              ✔ OK
+            </span>
           {% endif %}
         </td>
 

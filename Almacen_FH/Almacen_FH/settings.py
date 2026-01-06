@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'movimientos',
     'reportes',
     'dietas',
+    'dashboard',
 ]
 
 MIDDLEWARE = [

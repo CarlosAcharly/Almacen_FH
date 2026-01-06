@@ -3,29 +3,38 @@ from django.contrib.auth.decorators import login_required
 from datetime import date, timedelta
 from decimal import Decimal
 
-from movimientos.models import Entrada, Salida
-from catalogos.models import Producto
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import LETTER
-from decimal import Decimal
-from movimientos.models import Salida
-
-from movimientos.models import Entrada
-from .utils import encabezado_pdf
-
-from movimientos.models import Merma
 from weasyprint import HTML
 
+from catalogos.models import Producto
+from movimientos.models import Entrada, Salida, Merma
+from .utils import encabezado_pdf
 
+
+# ==========================
+# UTILIDAD GENERAL
+# ==========================
 def total_kg_movimiento(mov):
+    """
+    Convierte cualquier movimiento a KG evitando NoneType
+    """
+    kg = mov.kg or Decimal('0')
+    toneladas = mov.toneladas or Decimal('0')
+    bultos = mov.bultos or Decimal('0')
+    peso_bulto = mov.producto.peso_por_bulto or Decimal('0')
+
     return (
-        mov.kg +
-        (mov.toneladas * Decimal('1000')) +
-        (mov.bultos * mov.producto.peso_por_bulto)
+        kg +
+        (toneladas * Decimal('1000')) +
+        (bultos * peso_bulto)
     )
 
 
+# ==========================
+# DASHBOARD
+# ==========================
 @login_required
 def dashboard(request):
     hoy = date.today()
@@ -67,14 +76,10 @@ def dashboard(request):
 
     return render(request, 'reportes/dashboard.html', context)
 
-def total_kg_movimiento(mov):
-    return (
-        mov.kg +
-        (mov.toneladas * Decimal('1000')) +
-        (mov.bultos * mov.producto.peso_por_bulto)
-    )
 
-
+# ==========================
+# PDF ENTRADAS
+# ==========================
 def pdf_entradas(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="reporte_entradas.pdf"'
@@ -108,6 +113,10 @@ def pdf_entradas(request):
     p.save()
     return response
 
+
+# ==========================
+# PDF SALIDAS
+# ==========================
 def pdf_salidas(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="reporte_salidas.pdf"'
@@ -118,29 +127,36 @@ def pdf_salidas(request):
     y = 650
     p.setFont("Helvetica", 10)
 
-    for s in Salida.objects.all().order_by('-fecha_hora'):
-        total = (
-            s.kg +
-            (s.toneladas * 1000) +
-            (s.bultos * s.producto.peso_por_bulto)
-        )
+    salidas = Salida.objects.select_related('producto').order_by('-fecha_hora')
 
-        p.drawString(40, y, f"{s.fecha_hora.strftime('%d/%m/%Y')} - {s.producto.nombre}")
+    for s in salidas:
+        total = total_kg_movimiento(s)
+
+        p.drawString(
+            40, y,
+            f"{s.fecha_hora.strftime('%d/%m/%Y')} - {s.producto.nombre}"
+        )
         p.drawString(240, y, f"{s.tipo}")
         p.drawString(340, y, f"{total} kg")
+
         y -= 20
 
         if y < 50:
             p.showPage()
             encabezado_pdf(p, "Reporte de Salidas")
+            p.setFont("Helvetica", 10)
             y = 650
 
     p.showPage()
     p.save()
     return response
 
+
+# ==========================
+# HOJA DE TRASLADO
+# ==========================
 def hoja_traslado(request, salida_id):
-    salida = Salida.objects.get(id=salida_id)
+    salida = Salida.objects.select_related('producto').get(id=salida_id)
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="hoja_traslado.pdf"'
@@ -151,13 +167,15 @@ def hoja_traslado(request, salida_id):
     p.setFont("Helvetica", 11)
     y = 650
 
+    total = total_kg_movimiento(salida)
+
     p.drawString(40, y, f"Fecha: {salida.fecha_hora.strftime('%d/%m/%Y %H:%M')}")
     y -= 30
 
     p.drawString(40, y, f"Producto: {salida.producto.nombre}")
     y -= 20
 
-    p.drawString(40, y, f"Cantidad total (kg): {salida.kg + (salida.toneladas * 1000) + (salida.bultos * salida.producto.peso_por_bulto)}")
+    p.drawString(40, y, f"Cantidad total (kg): {total}")
     y -= 20
 
     p.drawString(40, y, f"Chofer: {salida.chofer}")
@@ -175,6 +193,10 @@ def hoja_traslado(request, salida_id):
     p.save()
     return response
 
+
+# ==========================
+# REPORTE DE MERMAS (WEASYPRINT)
+# ==========================
 def reporte_mermas_pdf(request, anio, mes=None):
     if mes:
         mermas = Merma.objects.filter(
@@ -184,7 +206,9 @@ def reporte_mermas_pdf(request, anio, mes=None):
         titulo = f"Reporte de Mermas - {mes}/{anio}"
         nombre = f"mermas_{mes}_{anio}.pdf"
     else:
-        mermas = Merma.objects.filter(fecha_hora__year=anio)
+        mermas = Merma.objects.filter(
+            fecha_hora__year=anio
+        )
         titulo = f"Reporte Anual de Mermas - {anio}"
         nombre = f"mermas_{anio}.pdf"
 

@@ -4,71 +4,104 @@
 {% block title %}Editar Dieta{% endblock %}
 
 {% block content %}
-<h4 class="mb-3">
-    🐖 Dieta: {{ dieta.nombre }} — {{ dieta.get_etapa_display }}
-</h4>
 
-<!-- FORMULARIO PARA EDITAR / GUARDAR DIETA -->
-<form method="post">
-    {% csrf_token %}
-
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Ingrediente</th>
-                    <th width="180">Kg</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ingrediente in ingredientes %}
-                <tr>
-                    <td>{{ ingrediente.nombre }}</td>
-                    <td>
-                        <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            name="kg_{{ ingrediente.id }}"
-                            class="form-control kg-input"
-                            value="{{ detalles|get_item:ingrediente.id|default:0 }}"
-                        >
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot class="table-secondary">
-                <tr>
-                    <th>Total (kg)</th>
-                    <th>
-                        <input
-                            type="text"
-                            id="totalKg"
-                            class="form-control fw-bold"
-                            readonly
-                        >
-                    </th>
-                </tr>
-            </tfoot>
-        </table>
+<!-- ENCABEZADO -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">
+            🐖 Dieta: <strong>{{ dieta.nombre }}</strong>
+        </h4>
+        <span class="text-muted">
+            Etapa: {{ dieta.get_etapa_display }}
+        </span>
     </div>
+</div>
 
-    <button class="btn btn-primary mt-3">
-        💾 Guardar dieta
-    </button>
-</form>
+<!-- CARD PRINCIPAL -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
 
-<!-- FORMULARIO PARA PREPARAR DIETA -->
-<form method="post"
-      action="{% url 'preparar_dieta' dieta.id %}"
-      class="mt-2"
-      onsubmit="return confirm('¿Seguro que deseas preparar esta dieta? Se afectará el stock.')">
-    {% csrf_token %}
-    <button class="btn btn-success">
-        ⚙️ Agregar a stock de dieta
-    </button>
-</form>
+        <!-- FORMULARIO EDITAR DIETA -->
+        <form method="post">
+            {% csrf_token %}
 
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Ingrediente</th>
+                            <th class="text-center" width="180">Kg</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for ingrediente in ingredientes %}
+                        <tr>
+                            <td>
+                                <strong>{{ ingrediente.nombre }}</strong>
+                            </td>
+                            <td>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    name="kg_{{ ingrediente.id }}"
+                                    class="form-control kg-input text-center"
+                                    value="{{ detalles|get_item:ingrediente.id|default:0 }}"
+                                >
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <th class="text-end">Total (kg)</th>
+                            <th>
+                                <input
+                                    type="text"
+                                    id="totalKg"
+                                    class="form-control fw-bold text-center bg-light"
+                                    readonly
+                                >
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-primary">
+                    💾 Guardar dieta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CARD PREPARAR DIETA -->
+<div class="card border-success shadow-sm">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="mb-1">⚙️ Preparar dieta</h6>
+            <small class="text-muted">
+                Esta acción afectará el stock de los ingredientes
+            </small>
+        </div>
+
+        <form method="post"
+              action="{% url 'preparar_dieta' dieta.id %}"
+              onsubmit="return confirm('¿Seguro que deseas preparar esta dieta? Se afectará el stock.')">
+            {% csrf_token %}
+            <button class="btn btn-success">
+                ➕ Agregar a stock
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- SCRIPT -->
 <script>
     function recalcularTotal() {
         let total = 0;
@@ -84,4 +117,5 @@
 
     recalcularTotal();
 </script>
+
 {% endblock %}
