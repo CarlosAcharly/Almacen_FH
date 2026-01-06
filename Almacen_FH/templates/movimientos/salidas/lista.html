@@ -5,7 +5,7 @@
     <div class="card shadow">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">📋 Salidas de Almacén</h5>
-            <a href="{% url 'nueva_salida' %}" class="btn btn-light btn-sm">
+            <a href="{% url 'crear_salida' %}" class="btn btn-light btn-sm">
                 ➕ Nueva Salida
             </a>
         </div>
@@ -25,9 +25,15 @@
                     {% for salida in salidas %}
                     <tr>
                         <td class="text-center">{{ salida.fecha_hora|date:"d/m/Y H:i" }}</td>
-                        <td>{{ salida.producto.nombre }}</td>
+                        <td>
+                            {% for detalle in salida.detalles.all %}
+                                {{ detalle.producto.nombre }}<br>
+                            {% endfor %}
+                        </td>
                         <td class="text-end">
-                            {{ salida.cantidad_total_kg }} kg
+                            {% for detalle in salida.detalles.all %}
+                                {{ detalle.kg|floatformat:2 }} kg<br>
+                            {% endfor %}
                         </td>
                         <td>
                             {% if salida.tipo == "VENTA" %}

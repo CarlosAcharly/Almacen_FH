@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from datetime import date
-
+from django.db import transaction
 from catalogos.models import Producto
-
-from .forms import EntradaForm, SalidaForm, MermaForm
-from .models import Entrada, Salida, Merma
+from .forms import (
+    MovimientoForm, MovimientoDetalleFormSet,
+    EntradaForm, SalidaForm, MermaForm
+)
+from .models import Entrada, Salida, Merma, Movimiento, MovimientoDetalle
 
 
 # =========================
@@ -44,27 +46,13 @@ def nueva_entrada(request):
 # =========================
 @login_required
 def lista_salidas(request):
-    salidas = Salida.objects.select_related(
-        'producto', 'cliente', 'lugar', 'usuario'
-    ).order_by('-fecha_hora')
-
-    return render(request, 'movimientos/salidas/lista.html', {
-        'salidas': salidas
-    })
+    salidas = Movimiento.objects.select_related(
+        'cliente', 'lugar', 'chofer', 'unidad', 'usuario'
+    ).prefetch_related('detalles__producto').order_by('-fecha_hora')
+    return render(request, 'movimientos/salidas/lista.html', {'salidas': salidas})
 
 
-@login_required
-def nueva_salida(request):
-    form = SalidaForm(request.POST or None)
-    if form.is_valid():
-        salida = form.save(commit=False)
-        salida.usuario = request.user
-        salida.save()
-        return redirect('lista_salidas')
 
-    return render(request, 'movimientos/salidas/crear.html', {
-        'form': form
-    })
 
 
 # =========================
@@ -103,13 +91,13 @@ def crear_merma(request):
         'form': form
     })
 
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
 
+# =========================
+# KARDEX POR PRODUCTO
+# =========================
 @login_required
 def kardex_producto(request, producto_id):
     producto = get_object_or_404(Producto, pk=producto_id)
-
     peso_bulto = producto.peso_por_bulto or 0
 
     entradas = Entrada.objects.filter(producto=producto)
@@ -164,4 +152,44 @@ def kardex_producto(request, producto_id):
     return render(request, 'movimientos/kardex.html', {
         'producto': producto,
         'movimientos': movimientos
+    })
+
+
+# =========================
+# CREAR SALIDA (CON FORMSET DINÁMICO)
+# =========================
+
+
+@login_required
+def crear_salida(request):
+    prefix = 'detalles'  # Debe coincidir con el prefijo del formset
+
+    if request.method == 'POST':
+        form = MovimientoForm(request.POST)
+        formset = MovimientoDetalleFormSet(request.POST, prefix=prefix)
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                movimiento = form.save(commit=False)
+                movimiento.usuario = request.user
+                movimiento.folio = f"SAL-{Movimiento.objects.count() + 1:05d}"
+                movimiento.save()
+
+                detalles = formset.save(commit=False)
+                for detalle in detalles:
+                    detalle.movimiento = movimiento
+                    detalle.save()
+
+            return redirect('lista_salidas')
+    else:
+        form = MovimientoForm()
+        formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
+
+    productos = Producto.objects.filter(activo=True)
+
+    return render(request, 'movimientos/salidas/crear.html', {
+        'form': form,
+        'formset': formset,
+        'productos': productos,
+        'prefix': prefix
     })

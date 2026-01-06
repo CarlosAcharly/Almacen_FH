@@ -183,3 +183,65 @@ class Merma(models.Model):
 
     def __str__(self):
         return f"Merma {self.producto} - {self.motivo}"
+    
+
+class Movimiento(models.Model):
+    TIPOS = (
+        ('VENTA', 'Venta'),
+        ('TRASLADO', 'Traslado'),
+        ('PEDIDO', 'Pedido'),
+    )
+
+    folio = models.CharField(max_length=20, unique=True)
+    tipo = models.CharField(max_length=10, choices=TIPOS)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, null=True, blank=True)
+    lugar = models.ForeignKey(Lugar, on_delete=models.PROTECT, null=True, blank=True)
+    chofer = models.ForeignKey(Chofer, on_delete=models.PROTECT, null=True, blank=True)
+    unidad = models.ForeignKey(UnidadTransporte, on_delete=models.PROTECT, null=True, blank=True)
+
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return f"{self.tipo} - {self.folio}"
+
+class MovimientoDetalle(models.Model):
+    movimiento = models.ForeignKey(
+        Movimiento,
+        related_name='detalles',
+        on_delete=models.CASCADE
+    )
+
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
+
+    kg = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    toneladas = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    bultos = models.PositiveIntegerField(default=0)
+
+    @property
+    def total_kg(self):
+        return calcular_total_kg(
+            self.producto, self.kg, self.toneladas, self.bultos
+        )
+
+    def clean(self):
+        total = self.total_kg
+
+        if total <= 0:
+            raise ValidationError("La cantidad debe ser mayor a 0")
+
+        if total > self.producto.stock_kg:
+            raise ValidationError(
+                f"Stock insuficiente para {self.producto.nombre}"
+            )
+
+    def save(self, *args, **kwargs):
+        es_nuevo = self.pk is None
+        self.clean()
+
+        if es_nuevo:
+            self.producto.stock_kg -= self.total_kg
+            self.producto.save()
+
+        super().save(*args, **kwargs)

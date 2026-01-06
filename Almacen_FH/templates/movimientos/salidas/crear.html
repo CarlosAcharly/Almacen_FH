@@ -1,59 +1,130 @@
 {% extends "layout/base.html" %}
-
-{% block title %}Nueva Salida de Almacén{% endblock %}
-
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-xl-9 col-lg-10">
+<div class="container mt-4">
+    <h1>Crear Salida</h1>
+    <form method="post">
+        {% csrf_token %}
 
-        <form method="post" class="glass-form">
-            {% csrf_token %}
-
-            <h4 class="glass-form-title text-danger">
-                <i class="bi bi-box-arrow-up me-2"></i>
-                Nueva Salida de Almacén
-            </h4>
-
-            <!-- Errores -->
-            {% if form.errors %}
-            <div class="alert alert-danger glass-card mb-4">
-                <strong>⚠️ Corrige los siguientes errores:</strong>
-                <ul class="mb-0 mt-2">
-                    {% for field in form %}
-                        {% for error in field.errors %}
-                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                        {% endfor %}
+        {# Errores del form principal #}
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field }}: {{ error }}</li>
                     {% endfor %}
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {# Errores del formset #}
+        {% if formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {% for error in formset.non_form_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
             </div>
-            {% endif %}
+        {% endif %}
 
-            <div class="row">
+        <div class="mb-3">
+            {{ form.tipo.label_tag }} {{ form.tipo }}
+        </div>
+        <div class="mb-3">
+            {{ form.cliente.label_tag }} {{ form.cliente }}
+        </div>
+        <div class="mb-3">
+            {{ form.lugar.label_tag }} {{ form.lugar }}
+        </div>
+        <div class="mb-3">
+            {{ form.chofer.label_tag }} {{ form.chofer }}
+        </div>
+        <div class="mb-3">
+            {{ form.unidad.label_tag }} {{ form.unidad }}
+        </div>
 
-                {% for field in form %}
-                <div class="col-md-6 mb-3">
-                    <label class="glass-label">{{ field.label }}</label>
-                    {{ field }}
-                </div>
+        <h3>Productos</h3>
+        {{ formset.management_form }}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Kg</th>
+                    <th>Toneladas</th>
+                    <th>Bultos</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="formset-body">
+                {% for f in formset %}
+                <tr class="formset-row">
+                    <td>{{ f.producto }}</td>
+                    <td>{{ f.kg }}</td>
+                    <td>{{ f.toneladas }}</td>
+                    <td>{{ f.bultos }}</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remove-row">Eliminar</button>
+                    </td>
+                </tr>
                 {% endfor %}
 
-            </div>
+                {# Fila plantilla oculta para agregar nuevos productos #}
+                <tr id="formset-empty" class="formset-row d-none">
+                    <td>
+                        <select name="detalles-__prefix__-producto" class="form-select">
+                            {% for producto in productos %}
+                            <option value="{{ producto.id }}">{{ producto.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="number" name="detalles-__prefix__-kg" step="0.01" class="form-control"></td>
+                    <td><input type="number" name="detalles-__prefix__-toneladas" step="0.01" class="form-control"></td>
+                    <td><input type="number" name="detalles-__prefix__-bultos" step="1" class="form-control"></td>
+                    <td><button type="button" class="btn btn-danger btn-sm remove-row">Eliminar</button></td>
+                </tr>
+            </tbody>
+        </table>
 
-            <div class="d-flex justify-content-end gap-2 mt-4">
-                <a href="{% url 'lista_productos' %}" class="btn glass-btn glass-btn-secondary">
-                    <i class="bi bi-arrow-left-circle"></i> Cancelar
-                </a>
-
-                <button type="submit" class="btn glass-btn glass-btn-primary bg-danger">
-                    <i class="bi bi-save"></i> Registrar salida
-                </button>
-            </div>
-
-        </form>
-
-    </div>
+        <button type="button" id="add-row" class="btn btn-primary">Agregar Producto</button>
+        <button type="submit" class="btn btn-success">Guardar Salida</button>
+    </form>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const tbody = document.getElementById("formset-body");
+    const totalFormsInput = document.getElementById("id_detalles-TOTAL_FORMS");
+    const addBtn = document.getElementById("add-row");
+    const emptyRowTemplate = document.getElementById("formset-empty");
+
+    function updateRemoveButtons() {
+        tbody.querySelectorAll(".remove-row").forEach(btn => {
+            btn.onclick = () => {
+                btn.closest("tr").remove();
+                totalFormsInput.value = tbody.querySelectorAll(".formset-row:not(#formset-empty)").length;
+            };
+        });
+    }
+
+    updateRemoveButtons();
+
+    addBtn.addEventListener("click", () => {
+        const newIndex = parseInt(totalFormsInput.value);
+        const newRow = emptyRowTemplate.cloneNode(true);
+        newRow.removeAttribute("id");
+        newRow.classList.remove("d-none");
+
+        newRow.querySelectorAll("input, select").forEach(el => {
+            el.name = el.name.replace("__prefix__", newIndex);
+            if(el.id) el.id = el.id.replace("__prefix__", newIndex);
+            if(el.tagName.toLowerCase() === "select") el.selectedIndex = 0;
+            else el.value = '';
+        });
+
+        tbody.appendChild(newRow);
+        totalFormsInput.value = newIndex + 1;
+        updateRemoveButtons();
+    });
+});
+</script>
 {% endblock %}

@@ -325,6 +325,30 @@
                 </a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link {% if current in 'lista_choferes crear_chofer editar_chofer' %}active{% endif %}"
+                   href="{% url 'lista_choferes' %}">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Choferes</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {% if current in 'lista_unidades crear_unidad editar_unidad' %}active{% endif %}"
+                   href="{% url 'lista_unidades' %}">
+                    <i class="bi bi-truck-front"></i>
+                    <span>Unidades</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {% if current in 'lista_lugares crear_lugar editar_lugar' %}active{% endif %}"
+                   href="{% url 'lista_lugares' %}">
+                    <i class="bi bi-geo-alt"></i>
+                    <span>Lugares</span>
+                </a>
+            </li>
+
         </ul>
     </aside>
 

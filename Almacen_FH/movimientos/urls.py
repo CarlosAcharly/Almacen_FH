@@ -8,8 +8,7 @@ urlpatterns = [
 
     # SALIDAS
     path('salidas/', views.lista_salidas, name='lista_salidas'),
-    path('salidas/nueva/', views.nueva_salida, name='nueva_salida'),
-
+    path('salidas/nueva/', views.crear_salida, name='crear_salida'),
     # MERMAS
     path('mermas/', views.lista_mermas, name='lista_mermas'),
     path('mermas/nueva/', views.crear_merma, name='crear_merma'),
