@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ticket Salida</title>
+
+<style>
+@page {
+    size: 80mm auto;
+    margin: 5mm;
+}
+
+body {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.ticket {
+    width: 80mm;
+}
+
+.center {
+    text-align: center;
+}
+
+hr {
+    border: none;
+    border-top: 1px dashed #000;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    font-size: 11px;
+    padding: 2px 0;
+}
+</style>
+</head>
+
+<body onload="window.print()">
+<div class="ticket">
+
+    <!-- LOGO -->
+    <div class="center">
+        <img src="{% static 'img/logo.jpg' %}" style="max-width:40mm;">
+    </div>
+
+    <hr>
+
+    <p><strong>Folio:</strong> {{ movimiento.folio }}</p>
+    <p><strong>Fecha:</strong> {{ movimiento.fecha_hora|date:"d/m/Y H:i" }}</p>
+    <p><strong>Tipo:</strong> {{ movimiento.tipo }}</p>
+
+    {% if movimiento.tipo == "VENTA" %}
+        <p><strong>Cliente:</strong> {{ movimiento.cliente.nombre }}</p>
+    {% elif movimiento.tipo == "TRASLADO" %}
+        <p><strong>Destino:</strong> {{ movimiento.lugar.nombre }}</p>
+    {% endif %}
+
+    <p><strong>Unidad:</strong> {{ movimiento.unidad.nombre }}</p>
+    <p><strong>Chofer:</strong> {{ movimiento.chofer.nombre }}</p>
+    <p><strong>Usuario:</strong> {{ movimiento.usuario.username }}</p>
+
+    <hr>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Kg</th>
+                <th>Ton</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in detalles %}
+            <tr>
+                <td>{{ d.producto.nombre|truncatechars:16 }}</td>
+                <td>{{ d.kg }}</td>
+                <td>{{ d.toneladas }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+
+    <!-- TOTALES -->
+    <p><strong>Total Kg:</strong> {{ total_kg }}</p>
+    <p><strong>Total Ton:</strong> {{ total_ton }}</p>
+
+    <hr>
+
+    <p class="center">*** GRACIAS ***</p>
+
+</div>
+</body>
+</html>

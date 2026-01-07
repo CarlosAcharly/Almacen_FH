@@ -9,7 +9,6 @@ from .forms import (
 )
 from .models import Entrada, Salida, Merma, Movimiento, MovimientoDetalle
 
-
 # =========================
 # ENTRADAS
 # =========================
@@ -52,8 +51,68 @@ def lista_salidas(request):
     return render(request, 'movimientos/salidas/lista.html', {'salidas': salidas})
 
 
+@login_required
+def crear_salida(request):
+    prefix = 'detalles'  # Debe coincidir con el prefijo del formset
+    ticket_id = None  # Inicialmente no hay ticket
+
+    if request.method == 'POST':
+        form = MovimientoForm(request.POST)
+        formset = MovimientoDetalleFormSet(request.POST, prefix=prefix)
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                movimiento = form.save(commit=False)
+                movimiento.usuario = request.user
+                movimiento.folio = f"SAL-{Movimiento.objects.count() + 1:05d}"
+                movimiento.save()
+
+                detalles = formset.save(commit=False)
+                for detalle in detalles:
+                    detalle.movimiento = movimiento
+                    detalle.save()
+
+            # Guardado exitoso: pasar el ID del movimiento para el modal
+            ticket_id = movimiento.id
+            form = MovimientoForm()  # Reiniciar form
+            formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
+
+    else:
+        form = MovimientoForm()
+        formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
+
+    productos = Producto.objects.filter(activo=True)
+
+    return render(request, 'movimientos/salidas/crear.html', {
+        'form': form,
+        'formset': formset,
+        'productos': productos,
+        'prefix': prefix,
+        'ticket_id': ticket_id,  # <-- Para que el modal se active si guardó
+    })
 
 
+# =========================
+# IMPRESIÓN DE TICKET
+# =========================
+@login_required
+def imprimir_ticket(request, movimiento_id):
+    movimiento = get_object_or_404(Movimiento, id=movimiento_id)
+    detalles = movimiento.detalles.select_related('producto').all()
+
+    total_kg = 0
+    total_ton = 0
+
+    for d in detalles:
+        total_kg += d.kg
+        total_ton += d.toneladas
+
+    return render(request, 'movimientos/salidas/ticket.html', {
+        'movimiento': movimiento,
+        'detalles': detalles,
+        'total_kg': round(total_kg, 2),
+        'total_ton': round(total_ton, 3),
+    })
 
 # =========================
 # MERMAS
@@ -140,7 +199,6 @@ def kardex_producto(request, producto_id):
             'usuario': m.usuario
         })
 
-    # Orden cronológico
     movimientos.sort(key=lambda x: x['fecha'])
 
     # Stock acumulado
@@ -152,44 +210,4 @@ def kardex_producto(request, producto_id):
     return render(request, 'movimientos/kardex.html', {
         'producto': producto,
         'movimientos': movimientos
-    })
-
-
-# =========================
-# CREAR SALIDA (CON FORMSET DINÁMICO)
-# =========================
-
-
-@login_required
-def crear_salida(request):
-    prefix = 'detalles'  # Debe coincidir con el prefijo del formset
-
-    if request.method == 'POST':
-        form = MovimientoForm(request.POST)
-        formset = MovimientoDetalleFormSet(request.POST, prefix=prefix)
-
-        if form.is_valid() and formset.is_valid():
-            with transaction.atomic():
-                movimiento = form.save(commit=False)
-                movimiento.usuario = request.user
-                movimiento.folio = f"SAL-{Movimiento.objects.count() + 1:05d}"
-                movimiento.save()
-
-                detalles = formset.save(commit=False)
-                for detalle in detalles:
-                    detalle.movimiento = movimiento
-                    detalle.save()
-
-            return redirect('lista_salidas')
-    else:
-        form = MovimientoForm()
-        formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
-
-    productos = Producto.objects.filter(activo=True)
-
-    return render(request, 'movimientos/salidas/crear.html', {
-        'form': form,
-        'formset': formset,
-        'productos': productos,
-        'prefix': prefix
     })

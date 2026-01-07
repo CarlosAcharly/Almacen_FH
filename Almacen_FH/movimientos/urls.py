@@ -9,6 +9,7 @@ urlpatterns = [
     # SALIDAS
     path('salidas/', views.lista_salidas, name='lista_salidas'),
     path('salidas/nueva/', views.crear_salida, name='crear_salida'),
+    path('salidas/ticket/<int:movimiento_id>/', views.imprimir_ticket, name='imprimir_ticket'),
     # MERMAS
     path('mermas/', views.lista_mermas, name='lista_mermas'),
     path('mermas/nueva/', views.crear_merma, name='crear_merma'),
