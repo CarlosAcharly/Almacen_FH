@@ -1,6 +1,7 @@
 from django.db import models
-from catalogos.models import Producto
 from django.db.models import Sum
+from django.utils import timezone
+from catalogos.models import Producto
 
 
 class EtapaCerdo(models.TextChoices):
@@ -15,8 +16,12 @@ class EtapaCerdo(models.TextChoices):
 
 class Dieta(models.Model):
     nombre = models.CharField(max_length=150)
-    etapa = models.CharField(max_length=20, choices=EtapaCerdo.choices)
+    etapa = models.CharField(
+        max_length=20,
+        choices=EtapaCerdo.choices
+    )
 
+    # Producto que representa la dieta (ej. "Dieta Cerdo Engorda")
     producto_dieta = models.OneToOneField(
         Producto,
         on_delete=models.PROTECT,
@@ -30,7 +35,17 @@ class Dieta(models.Model):
     )
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    # 🔹 Estado operativo
     activa = models.BooleanField(default=True)
+
+    # 🗑️ PAPELERA (soft delete)
+    eliminada = models.BooleanField(default=False)
+    eliminada_en = models.DateTimeField(null=True, blank=True)
+
+    # ==========================
+    # MÉTODOS DE NEGOCIO
+    # ==========================
 
     def recalcular_total(self):
         total = self.detalles.aggregate(
@@ -39,6 +54,23 @@ class Dieta(models.Model):
 
         self.total_kg = total
         self.save(update_fields=['total_kg'])
+
+    def eliminar(self):
+        """Enviar dieta a la papelera"""
+        self.eliminada = True
+        self.activa = False
+        self.eliminada_en = timezone.now()
+        self.save(update_fields=['eliminada', 'activa', 'eliminada_en'])
+
+    def restaurar(self):
+        """Restaurar dieta desde la papelera"""
+        self.eliminada = False
+        self.activa = True
+        self.eliminada_en = None
+        self.save(update_fields=['eliminada', 'activa', 'eliminada_en'])
+
+    def __str__(self):
+        return f"{self.nombre} ({self.get_etapa_display()})"
 
 class DetalleDieta(models.Model):
     dieta = models.ForeignKey(

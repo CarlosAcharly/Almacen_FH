@@ -1,15 +1,41 @@
 {% extends 'layout/base.html' %}
 {% block content %}
+
 <div class="container mt-4">
-  <h3>{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Unidad</h3>
+  <h3 class="mb-3">
+    {% if form.instance.pk %}Editar{% else %}Crear{% endif %} Unidad de Transporte
+  </h3>
 
   <form method="post" class="card p-4 shadow">
     {% csrf_token %}
-    {{ form.as_p }}
 
-    <button class="btn btn-success mt-3">
+    <div class="mb-3">
+      <label class="form-label">Marca</label>
+      {{ form.marca }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Placas</label>
+      {{ form.placa }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Color</label>
+      {{ form.color }}
+    </div>
+
+    <div class="form-check mb-3">
+      {{ form.activa }}
+      <label class="form-check-label">Unidad activa</label>
+    </div>
+
+    <button class="btn btn-success">
       {% if form.instance.pk %}Actualizar{% else %}Guardar{% endif %}
     </button>
+    <a href="{% url 'lista_unidades' %}" class="btn btn-secondary ms-2">
+      Cancelar
+    </a>
   </form>
 </div>
+
 {% endblock %}

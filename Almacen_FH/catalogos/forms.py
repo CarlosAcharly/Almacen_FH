@@ -86,7 +86,17 @@ class ChoferForm(forms.ModelForm):
 
 
 
+from django import forms
+from .models import UnidadTransporte
+
 class UnidadForm(forms.ModelForm):
     class Meta:
         model = UnidadTransporte
-        fields = '__all__'
+        fields = ['marca', 'placa', 'color', 'activa']
+        widgets = {
+            'marca': forms.TextInput(attrs={'class': 'form-control'}),
+            'placa': forms.TextInput(attrs={'class': 'form-control'}),
+            'color': forms.TextInput(attrs={'class': 'form-control'}),
+            'activa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+

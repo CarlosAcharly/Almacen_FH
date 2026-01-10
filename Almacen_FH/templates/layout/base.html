@@ -309,6 +309,15 @@
                 </a>
             </li>
 
+            
+            <li class="nav-item">
+                <a class="nav-link {% if current in 'lista_categorias crear_categoria editar_categoria' %}active{% endif %}"
+                   href="{% url 'lista_categorias' %}">
+                    <i class="bi bi-tags "></i>
+                    <span>Categorías</span>
+                </a>
+            </li>
+
             <li class="nav-item">
                 <a class="nav-link {% if current in 'lista_clientes crear_cliente editar_cliente' %}active{% endif %}"
                    href="{% url 'lista_clientes' %}">
@@ -349,6 +358,7 @@
                 </a>
             </li>
 
+            
         </ul>
     </aside>
 

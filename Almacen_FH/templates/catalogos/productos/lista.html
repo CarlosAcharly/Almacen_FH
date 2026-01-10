@@ -3,9 +3,16 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3>📦 Productos</h3>
-  <a href="{% url 'crear_producto' %}" class="btn btn-primary">
-    ➕ Nuevo Producto
-  </a>
+
+  <div class="d-flex gap-2">
+    <a href="{% url 'papelera_productos' %}" class="btn btn-outline-secondary">
+      🧺 Papelera
+    </a>
+
+    <a href="{% url 'crear_producto' %}" class="btn btn-primary">
+      ➕ Nuevo Producto
+    </a>
+  </div>
 </div>
 
 <!-- 🔍 BUSCADOR -->
@@ -41,7 +48,9 @@
 
     <div class="col-md-3">
       <label class="glass-label">Mostrar</label>
-      <select name="per_page" class="form-select glass-input" onchange="this.form.submit()">
+      <select name="per_page"
+              class="form-select glass-input"
+              onchange="this.form.submit()">
         {% for option in per_page_options %}
           <option value="{{ option }}"
             {% if per_page == option %}selected{% endif %}>
@@ -75,36 +84,47 @@
 
     <tbody>
       {% for producto in page_obj %}
-      <tr {% if producto.stock_kg <= producto.stock_minimo_kg %}class="table-danger"{% endif %}>
+      <tr>
         <td>{{ producto.nombre }}</td>
         <td>{{ producto.categoria }}</td>
         <td>{{ producto.stock_kg }}</td>
 
-        <!-- ✅ ESTADO VISUAL DE STOCK -->
+        <!-- ESTADO -->
         <td class="text-center">
           {% if producto.stock_kg == 0 %}
-            <span class="badge bg-danger px-3 py-2">
-              🔥 AGOTADO
-            </span>
+            <span class="badge bg-danger px-3 py-2">🔥 AGOTADO</span>
           {% elif producto.stock_kg <= producto.stock_minimo_kg %}
-            <span class="badge bg-warning text-dark px-3 py-2">
-              ⚠️ BAJO
-            </span>
+            <span class="badge bg-warning text-dark px-3 py-2">⚠️ BAJO</span>
           {% else %}
-            <span class="badge bg-success px-3 py-2">
-              ✔ OK
-            </span>
+            <span class="badge bg-success px-3 py-2">✔ OK</span>
           {% endif %}
         </td>
 
-        <td class="text-center">
-          <a href="{% url 'kardex_producto' producto.id %}" class="btn btn-sm btn-info">📊</a>
-          <a href="{% url 'editar_producto' producto.id %}" class="btn btn-sm btn-warning">✏️</a>
+        <!-- ACCIONES -->
+        <td class="text-center d-flex justify-content-center gap-1">
+
+          <!-- 📊 KARDEX -->
+          <a href="{% url 'kardex_producto' producto.id %}"
+             class="btn btn-sm btn-info"
+             title="Kardex">
+            📊
+          </a>
+
+          <!-- ✏️ EDITAR -->
+          <a href="{% url 'editar_producto' producto.id %}"
+             class="btn btn-sm btn-warning"
+             title="Editar">
+            ✏️
+          </a>
+
+          <!-- 🗑 PAPELERA -->
           <a href="{% url 'eliminar_producto' producto.id %}"
              class="btn btn-sm btn-danger"
-             onclick="return confirm('¿Eliminar este producto?')">
-             🗑️
+             title="Enviar a papelera"
+             onclick="return confirm('¿Enviar este producto a la papelera?')">
+            🗑️
           </a>
+
         </td>
       </tr>
       {% empty %}

@@ -12,14 +12,12 @@ class Producto(models.Model):
     categoria = models.ForeignKey('Categoria', on_delete=models.PROTECT)
     descripcion = models.TextField(blank=True)
 
-    # Stock SIEMPRE en KG
     stock_kg = models.DecimalField(
         max_digits=14,
         decimal_places=2,
         default=0
     )
 
-    # 👉 OPCIONAL
     peso_por_bulto = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -29,6 +27,10 @@ class Producto(models.Model):
     )
 
     activo = models.BooleanField(default=True)
+
+    # 🔥 PAPELERA
+    eliminado = models.BooleanField(default=False)
+    fecha_eliminado = models.DateTimeField(null=True, blank=True)
 
     def peso_bulto(self):
         return self.peso_por_bulto or 0
@@ -70,8 +72,10 @@ class Chofer(models.Model):
 
 
 class UnidadTransporte(models.Model):
-    placa = models.CharField(max_length=20)
-    descripcion = models.CharField(max_length=150)
+    marca = models.CharField(max_length=60)
+    placa = models.CharField(max_length=30, unique=True)
+    color = models.CharField(max_length=40)
+    activa = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.placa} - {self.descripcion}"
+        return f"{self.marca} - {self.placa}"
