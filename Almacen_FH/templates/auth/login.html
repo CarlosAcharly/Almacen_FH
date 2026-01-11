@@ -1,0 +1,45 @@
+{% extends "base_auth.html" %}
+{% load static %}
+
+{% block title %}Iniciar sesión{% endblock %}
+
+{% block content %}
+<div class="login-container">
+
+    <form method="post" class="glass-card">
+        {% csrf_token %}
+
+        <div class="logo">FH</div>
+
+        <h2>Iniciar sesión</h2>
+
+        <div class="input-group">
+            <label>Usuario</label>
+            {{ form.username }}
+        </div>
+
+        <div class="input-group password-group">
+            <label>Contraseña</label>
+
+            <div class="password-wrapper">
+                {{ form.password }}
+                <span class="toggle-password" onclick="togglePassword()">👁️</span>
+            </div>
+        </div>
+
+        <button type="submit">Iniciar sesión</button>
+
+        <div class="extra">
+            <a href="#">¿Olvidaste tu contraseña?</a>
+        </div>
+    </form>
+
+</div>
+
+<script>
+function togglePassword() {
+    const input = document.querySelector('input[type="password"], input[type="text"]');
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

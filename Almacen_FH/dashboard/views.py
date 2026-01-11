@@ -1,11 +1,11 @@
 from django.shortcuts import render
 from django.db.models import Sum, F
 from django.utils.timezone import now
-
+from django.contrib.auth.decorators import login_required
 from catalogos.models import Producto
 from movimientos.models import Entrada, Salida
 
-
+@login_required
 def dashboard(request):
     hoy = now()
     inicio_mes = hoy.replace(day=1)
@@ -57,18 +57,17 @@ def dashboard(request):
     entradas = (
         Entrada.objects
         .select_related('producto', 'usuario')
-        .order_by('-fecha')[:5]
+        .order_by('-fecha_hora')[:5]
     )
 
     salidas = (
         Salida.objects
         .select_related('producto', 'usuario')
-        .order_by('-fecha')[:5]
+        .order_by('-fecha_hora')[:5]
     )
-
     movimientos = sorted(
         list(entradas) + list(salidas),
-        key=lambda x: x.fecha,
+        key=lambda x: x.fecha_hora,
         reverse=True
     )[:10]
 

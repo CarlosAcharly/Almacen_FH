@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
 from .models import (
     Proveedor, Cliente, Chofer, UnidadTransporte,
@@ -16,7 +17,7 @@ from .forms import (
 # =========================
 # PRODUCTOS
 # =========================
-
+@login_required
 def lista_productos(request):
     q = request.GET.get('q', '').strip()
     categoria_id = request.GET.get('categoria', '')
@@ -49,7 +50,7 @@ def lista_productos(request):
         'per_page_options': [15, 25, 40],
     })
 
-
+@login_required
 def crear_producto(request):
     form = ProductoForm(request.POST or None)
 
@@ -62,7 +63,7 @@ def crear_producto(request):
         'form': form
     })
 
-
+@login_required
 def editar_producto(request, pk):
     producto = get_object_or_404(
         Producto,
@@ -83,6 +84,7 @@ def editar_producto(request, pk):
 
 
 # 🗑 ENVIAR A PAPELERA
+@login_required
 def eliminar_producto(request, pk):
     producto = get_object_or_404(
         Producto,
@@ -100,6 +102,7 @@ def eliminar_producto(request, pk):
 
 
 # 🧺 PAPELERA
+@login_required
 def papelera_productos(request):
     productos = Producto.objects.select_related('categoria').filter(
         eliminado=True
@@ -111,6 +114,7 @@ def papelera_productos(request):
 
 
 # ♻ RESTAURAR
+@login_required
 def restaurar_producto(request, pk):
     producto = get_object_or_404(
         Producto,
@@ -130,12 +134,12 @@ def restaurar_producto(request, pk):
 # =========================
 # PROVEEDORES
 # =========================
-
+@login_required
 def lista_proveedores(request):
     proveedores = Proveedor.objects.all()
     return render(request, 'catalogos/proveedores/lista.html', {'proveedores': proveedores})
 
-
+@login_required
 def crear_proveedor(request):
     form = ProveedorForm(request.POST or None)
     if form.is_valid():
@@ -143,7 +147,7 @@ def crear_proveedor(request):
         return redirect('lista_proveedores')
     return render(request, 'catalogos/proveedores/crear.html', {'form': form})
 
-
+@login_required
 def editar_proveedor(request, pk):
     proveedor = get_object_or_404(Proveedor, pk=pk)
     form = ProveedorForm(request.POST or None, instance=proveedor)
@@ -152,7 +156,7 @@ def editar_proveedor(request, pk):
         return redirect('lista_proveedores')
     return render(request, 'catalogos/proveedores/crear.html', {'form': form})
 
-
+@login_required
 def eliminar_proveedor(request, pk):
     proveedor = get_object_or_404(Proveedor, pk=pk)
     proveedor.delete()
@@ -162,12 +166,12 @@ def eliminar_proveedor(request, pk):
 # =========================
 # CLIENTES
 # =========================
-
+@login_required
 def lista_clientes(request):
     clientes = Cliente.objects.all()
     return render(request, 'catalogos/clientes/lista.html', {'clientes': clientes})
 
-
+@login_required
 def crear_cliente(request):
     form = ClienteForm(request.POST or None)
     if form.is_valid():
@@ -175,7 +179,7 @@ def crear_cliente(request):
         return redirect('lista_clientes')
     return render(request, 'catalogos/clientes/crear.html', {'form': form})
 
-
+@login_required
 def editar_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     form = ClienteForm(request.POST or None, instance=cliente)
@@ -184,7 +188,7 @@ def editar_cliente(request, pk):
         return redirect('lista_clientes')
     return render(request, 'catalogos/clientes/crear.html', {'form': form})
 
-
+@login_required
 def eliminar_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     cliente.delete()
@@ -194,12 +198,12 @@ def eliminar_cliente(request, pk):
 # =========================
 # CHOFERES
 # =========================
-
+@login_required
 def lista_choferes(request):
     choferes = Chofer.objects.all()
     return render(request, 'catalogos/choferes/lista.html', {'choferes': choferes})
 
-
+@login_required
 def crear_chofer(request):
     form = ChoferForm(request.POST or None)
     if form.is_valid():
@@ -207,7 +211,7 @@ def crear_chofer(request):
         return redirect('lista_choferes')
     return render(request, 'catalogos/choferes/crear.html', {'form': form})
 
-
+@login_required
 def editar_chofer(request, pk):
     chofer = get_object_or_404(Chofer, pk=pk)
     form = ChoferForm(request.POST or None, instance=chofer)
@@ -216,7 +220,7 @@ def editar_chofer(request, pk):
         return redirect('lista_choferes')
     return render(request, 'catalogos/choferes/crear.html', {'form': form})
 
-
+@login_required
 def eliminar_chofer(request, pk):
     chofer = get_object_or_404(Chofer, pk=pk)
     chofer.delete()
@@ -226,12 +230,12 @@ def eliminar_chofer(request, pk):
 # =========================
 # UNIDADES
 # =========================
-
+@login_required
 def lista_unidades(request):
     unidades = UnidadTransporte.objects.all().order_by('-id')
     return render(request, 'catalogos/unidades/lista.html', {'unidades': unidades})
 
-
+@login_required
 def crear_unidad(request):
     form = UnidadForm(request.POST or None)
     if form.is_valid():
@@ -239,7 +243,7 @@ def crear_unidad(request):
         return redirect('lista_unidades')
     return render(request, 'catalogos/unidades/crear.html', {'form': form})
 
-
+@login_required
 def editar_unidad(request, pk):
     unidad = get_object_or_404(UnidadTransporte, pk=pk)
     form = UnidadForm(request.POST or None, instance=unidad)
@@ -248,7 +252,7 @@ def editar_unidad(request, pk):
         return redirect('lista_unidades')
     return render(request, 'catalogos/unidades/crear.html', {'form': form})
 
-
+@login_required
 def eliminar_unidad(request, pk):
     unidad = get_object_or_404(UnidadTransporte, pk=pk)
     unidad.delete()
@@ -258,12 +262,12 @@ def eliminar_unidad(request, pk):
 # =========================
 # LUGARES
 # =========================
-
+@login_required
 def lista_lugares(request):
     lugares = Lugar.objects.all()
     return render(request, 'catalogos/lugares/lista.html', {'lugares': lugares})
 
-
+@login_required
 def crear_lugar(request):
     form = LugarForm(request.POST or None)
     if form.is_valid():
@@ -271,7 +275,7 @@ def crear_lugar(request):
         return redirect('lista_lugares')
     return render(request, 'catalogos/lugares/crear.html', {'form': form})
 
-
+@login_required
 def editar_lugar(request, pk):
     lugar = get_object_or_404(Lugar, pk=pk)
     form = LugarForm(request.POST or None, instance=lugar)
@@ -280,7 +284,7 @@ def editar_lugar(request, pk):
         return redirect('lista_lugares')
     return render(request, 'catalogos/lugares/crear.html', {'form': form})
 
-
+@login_required
 def eliminar_lugar(request, pk):
     lugar = get_object_or_404(Lugar, pk=pk)
     lugar.delete()
@@ -290,12 +294,12 @@ def eliminar_lugar(request, pk):
 # =========================
 # CATEGORÍAS
 # =========================
-
+@login_required
 def lista_categorias(request):
     categorias = Categoria.objects.all()
     return render(request, 'catalogos/categorias/lista.html', {'categorias': categorias})
 
-
+@login_required
 def crear_categoria(request):
     form = CategoriaForm(request.POST or None)
     if form.is_valid():
@@ -303,7 +307,7 @@ def crear_categoria(request):
         return redirect('lista_categorias')
     return render(request, 'catalogos/categorias/crear.html', {'form': form})
 
-
+@login_required
 def editar_categoria(request, pk):
     categoria = get_object_or_404(Categoria, pk=pk)
     form = CategoriaForm(request.POST or None, instance=categoria)
@@ -312,7 +316,7 @@ def editar_categoria(request, pk):
         return redirect('lista_categorias')
     return render(request, 'catalogos/categorias/crear.html', {'form': form})
 
-
+@login_required
 def eliminar_categoria(request, pk):
     categoria = get_object_or_404(Categoria, pk=pk)
     categoria.delete()

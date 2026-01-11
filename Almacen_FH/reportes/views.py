@@ -80,6 +80,7 @@ def dashboard(request):
 # ==========================
 # PDF ENTRADAS
 # ==========================
+@login_required
 def pdf_entradas(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="reporte_entradas.pdf"'
@@ -117,6 +118,7 @@ def pdf_entradas(request):
 # ==========================
 # PDF SALIDAS
 # ==========================
+@login_required
 def pdf_salidas(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="reporte_salidas.pdf"'
@@ -155,6 +157,7 @@ def pdf_salidas(request):
 # ==========================
 # HOJA DE TRASLADO
 # ==========================
+@login_required
 def hoja_traslado(request, salida_id):
     salida = Salida.objects.select_related('producto').get(id=salida_id)
 
@@ -197,6 +200,7 @@ def hoja_traslado(request, salida_id):
 # ==========================
 # REPORTE DE MERMAS (WEASYPRINT)
 # ==========================
+@login_required
 def reporte_mermas_pdf(request, anio, mes=None):
     if mes:
         mermas = Merma.objects.filter(
