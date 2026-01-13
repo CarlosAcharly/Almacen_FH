@@ -21,8 +21,8 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
 
-        <!-- FORMULARIO EDITAR DIETA -->
-        <form method="post">
+        <!-- FORMULARIO EDITAR DIETA + PREPARAR -->
+        <form method="post" action="{% url 'preparar_dieta' dieta.id %}" onsubmit="return confirm('¿Seguro que deseas preparar esta dieta? Se afectará el stock.')">
             {% csrf_token %}
 
             <div class="table-responsive">
@@ -72,36 +72,19 @@
 
             <!-- BOTONES -->
             <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-primary">
-                    💾 Guardar dieta
+                <button type="submit" class="btn btn-success">
+                    ➕ Guardar y Preparar dieta
                 </button>
+
+                <a href="{% url 'lista_dietas' %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- CARD PREPARAR DIETA -->
-<div class="card border-success shadow-sm">
-    <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-            <h6 class="mb-1">⚙️ Preparar dieta</h6>
-            <small class="text-muted">
-                Esta acción afectará el stock de los ingredientes
-            </small>
-        </div>
-
-        <form method="post"
-              action="{% url 'preparar_dieta' dieta.id %}"
-              onsubmit="return confirm('¿Seguro que deseas preparar esta dieta? Se afectará el stock.')">
-            {% csrf_token %}
-            <button class="btn btn-success">
-                ➕ Agregar a stock
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- SCRIPT -->
+<!-- SCRIPT PARA SUMAR TOTAL -->
 <script>
     function recalcularTotal() {
         let total = 0;
