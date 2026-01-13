@@ -14,7 +14,7 @@
                 🐖 Crear nueva dieta
             </h5>
 
-            <form method="post">
+            <form method="post" action="{% url 'crear_dieta' %}">
                 {% csrf_token %}
 
                 <div class="mb-3">
