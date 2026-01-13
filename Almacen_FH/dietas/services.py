@@ -9,7 +9,6 @@ from movimientos.models import Entrada, Salida
 @transaction.atomic
 def preparar_dieta(dieta: Dieta, usuario):
 
-    # Incluimos categoría sin romper nada
     detalles = dieta.detalles.select_related(
         'producto',
         'producto__categoria'
@@ -25,19 +24,17 @@ def preparar_dieta(dieta: Dieta, usuario):
         producto = d.producto
         kg = Decimal(d.kg)
 
-        # Cantidad válida
         if kg <= 0:
             raise ValidationError(
                 f"La cantidad de {producto.nombre} debe ser mayor a 0"
             )
 
-        # Categoría válida
-        if producto.categoria.nombre != 'Dietas':
+        # ✅ VALIDAR INGREDIENTES
+        if producto.categoria.nombre != 'Ingrediente de dieta':
             raise ValidationError(
-                f"El producto '{producto.nombre}' no pertenece a la categoría Dietas"
+                f"El producto '{producto.nombre}' no es un ingrediente de dieta"
             )
 
-        # Stock suficiente
         if producto.stock_kg < kg:
             raise ValidationError(
                 f"Stock insuficiente de {producto.nombre}. "
@@ -45,7 +42,7 @@ def preparar_dieta(dieta: Dieta, usuario):
             )
 
     # =========================
-    # 2️⃣ DESCONTAR INSUMOS + SALIDA
+    # 2️⃣ DESCONTAR INGREDIENTES
     # =========================
     for d in detalles:
         producto = d.producto
@@ -62,7 +59,7 @@ def preparar_dieta(dieta: Dieta, usuario):
         )
 
     # =========================
-    # 3️⃣ AUMENTAR STOCK DE DIETA
+    # 3️⃣ AUMENTAR STOCK DIETA
     # =========================
     dieta.recalcular_total()
 
@@ -77,5 +74,4 @@ def preparar_dieta(dieta: Dieta, usuario):
         producto=producto_dieta,
         kg=dieta.total_kg,
         usuario=usuario,
-        # observaciones=f"Preparación de dieta {dieta.nombre}"
     )
