@@ -1,4 +1,5 @@
 {% extends "layout/base.html" %}
+{% load dietas_extras %}  <!-- ¡CARGAR LOS FILTROS AQUÍ! -->
 
 {% block title %}Editar Dieta: {{ dieta.nombre }}{% endblock %}
 
@@ -41,6 +42,7 @@
                                             <strong>{{ ingrediente.nombre }}</strong>
                                         </td>
                                         <td>
+                                            <!-- USO CORRECTO DEL FILTRO get_item -->
                                             <input type="number"
                                                    step="0.01"
                                                    min="0"
@@ -144,12 +146,12 @@
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nombre de la dieta</label>
-                            {{ form.nombre }}
+                            {{ form.nombre|add_class:"form-control" }}
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">Etapa</label>
-                            {{ form.etapa }}
+                            {{ form.etapa|add_class:"form-select" }}
                         </div>
                         
                         <hr>

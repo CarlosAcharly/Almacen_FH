@@ -1,5 +1,5 @@
 {% extends "layout/base.html" %}
-
+{% load dietas_extras %}
 {% block title %}Nueva Dieta{% endblock %}
 
 {% block content %}
@@ -17,7 +17,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nombre de la dieta</label>
                         {{ form.nombre|add_class:"form-control" }}
-                        <small class="text-muted">Ej: Dieta Gestación Premium, Dieta Engorda Básica</small>
+                        <small class="text-muted">Ej: Dieta Gestación, Dieta Engorda</small>
                     </div>
 
                     <div class="mb-4">
