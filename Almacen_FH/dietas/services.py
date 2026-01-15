@@ -21,7 +21,7 @@ def asegurar_cliente_interno():
 def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
     """
     Prepara una dieta (puede ejecutarse múltiples veces):
-    - Descuenta ingredientes (SALIDA con tipo 'VENTA' y cliente 'Interno')
+    - Descuenta ingredientes (SALIDA con tipo 'VENTA')
     - Aumenta stock del producto dieta (ENTRADA)
     - Registra la preparación en historial
     """
@@ -58,12 +58,7 @@ def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
             )
 
     # =========================
-    # 2️⃣ PREPARAR CLIENTE INTERNO
-    # =========================
-    cliente_interno = asegurar_cliente_interno()
-
-    # =========================
-    # 3️⃣ SALIDAS (INGREDIENTES) - Tipo: Venta, Cliente: Interno
+    # 2️⃣ SALIDAS (INGREDIENTES) - Tipo: Venta
     # =========================
     for d in detalles:
         producto = d.producto
@@ -73,18 +68,18 @@ def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
         producto.stock_kg -= kg
         producto.save(update_fields=['stock_kg'])
 
-        # Registrar salida tipo VENTA para cada ingrediente
+        # Registrar salida tipo VENTA
         Salida.objects.create(
             producto=producto,
             kg=kg,
             usuario=usuario,
             tipo='VENTA',
-            fecha_hora=timezone.now(),
-            observaciones=f"Preparación de dieta: {dieta.nombre}"
+            fecha_hora=timezone.now()
+            # Sin observaciones
         )
 
     # =========================
-    # 4️⃣ ENTRADA (DIETA TERMINADA)
+    # 3️⃣ ENTRADA (DIETA TERMINADA)
     # =========================
     cantidad_preparada = dieta.total_kg
 
@@ -97,12 +92,12 @@ def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
         producto=producto_dieta,
         kg=cantidad_preparada,
         usuario=usuario,
-        fecha_hora=timezone.now(),
-        observaciones=f"Preparación de dieta: {dieta.nombre}"
+        fecha_hora=timezone.now()
+        # Sin observaciones
     )
 
     # =========================
-    # 5️⃣ REGISTRAR PREPARACIÓN EN HISTORIAL
+    # 4️⃣ REGISTRAR PREPARACIÓN EN HISTORIAL
     # =========================
     PreparacionDieta.objects.create(
         dieta=dieta,
