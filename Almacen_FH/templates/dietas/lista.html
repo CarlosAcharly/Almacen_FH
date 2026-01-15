@@ -1,141 +1,201 @@
 {% extends "layout/base.html" %}
+
 {% block title %}Dietas{% endblock %}
 
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-semibold">🐖 Dietas disponibles</h4>
-
+    <h4 class="fw-semibold">🐖 Dietas registradas</h4>
     <div class="d-flex gap-2">
         <a href="{% url 'papelera_dietas' %}" class="btn btn-outline-danger">
-            🗑️ Papelera
+            <i class="bi bi-trash"></i> Papelera
         </a>
-
         <a href="{% url 'crear_dieta' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Nueva dieta
         </a>
     </div>
 </div>
 
-<div class="row g-4">
-
-{% for dieta in dietas %}
-<div class="col-xl-3 col-lg-4 col-md-6">
-    <div class="glass-card h-100 d-flex flex-column">
-
-        <!-- HEADER -->
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <div class="glass-card-title">
-                    {{ dieta.nombre }}
-                </div>
-                <div class="glass-card-subtitle">
-                    {{ dieta.get_etapa_display }}
-                </div>
-            </div>
-
-            <div class="glass-card-icon">
-                <i class="bi bi-basket-fill"></i>
-            </div>
-        </div>
-
-        <div class="glass-divider"></div>
-
-        <!-- TOTAL -->
-        <div class="d-flex justify-content-between small">
-            <span class="text-muted">Total</span>
-            <span class="fw-semibold">
-                {{ dieta.total_kg }} kg
-            </span>
-        </div>
-
-        {% if dieta.preparada %}
-        <div class="mt-2">
-            <span class="badge bg-success w-100">
-                ✅ Preparada
-            </span>
-        </div>
-        {% endif %}
-
-        <div class="glass-divider"></div>
-
-        <!-- ACCIONES -->
-        <div class="mt-auto d-flex flex-column gap-2">
-
-            <a href="{% url 'editar_dieta' dieta.id %}"
-               class="btn btn-outline-primary btn-sm w-100">
-                ✏️ Editar
-            </a>
-
-            {% if not dieta.preparada %}
-            <!-- PREPARAR -->
-            <button class="btn btn-success btn-sm w-100"
-                    data-bs-toggle="modal"
-                    data-bs-target="#prepararModal{{ dieta.id }}">
-                ⚙️ Preparar dieta
-            </button>
-            {% endif %}
-
-            <!-- ELIMINAR -->
-            <form method="post"
-                  action="{% url 'eliminar_dieta' dieta.id %}">
-                {% csrf_token %}
-                <button class="btn btn-outline-danger btn-sm w-100">
-                    🗑 Eliminar
-                </button>
-            </form>
-
-        </div>
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-</div>
-
-<!-- ========================= -->
-<!-- MODAL PREPARAR DIETA -->
-<!-- ========================= -->
-{% if not dieta.preparada %}
-<div class="modal fade" id="prepararModal{{ dieta.id }}" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Preparar dieta</h5>
-            </div>
-            <div class="modal-body">
-                <p>
-                    Vas a preparar la dieta
-                    <strong>{{ dieta.nombre }}</strong>.
-                </p>
-                <ul class="small">
-                    <li>Se descontará stock de ingredientes</li>
-                    <li>Se generará una salida automática</li>
-                    <li>Se generará una entrada del producto dieta</li>
-                </ul>
-                <strong>¿Deseas continuar?</strong>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
-                    Cancelar
-                </button>
-                <form method="post"
-                      action="{% url 'preparar_dieta' dieta.id %}">
-                    {% csrf_token %}
-                    <button class="btn btn-success">
-                        Sí, preparar
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+    {% endfor %}
 {% endif %}
 
-{% empty %}
-<div class="col-12">
-    <div class="glass-card text-center text-muted">
-        No hay dietas registradas
+<div class="row g-4">
+    {% for dieta in dietas %}
+    <div class="col-xl-4 col-lg-6 col-md-6">
+        <div class="card h-100 shadow-sm border-{% if dieta.activa %}primary{% else %}secondary{% endif %}">
+            <div class="card-body d-flex flex-column">
+                <!-- HEADER -->
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">{{ dieta.nombre }}</h5>
+                        <span class="badge bg-{% if dieta.etapa == 'gestacion' %}info{% elif dieta.etapa == 'lactacion' %}warning{% else %}primary{% endif %}">
+                            {{ dieta.get_etapa_display }}
+                        </span>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block">
+                            {{ dieta.fecha_creacion|date:"d/m/Y" }}
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- INFORMACIÓN -->
+                <div class="mb-3 flex-grow-1">
+                    <div class="row small">
+                        <div class="col-6 mb-2">
+                            <strong>Producto:</strong><br>
+                            <span class="text-truncate">{{ dieta.producto_dieta.nombre }}</span>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <strong>Stock producto:</strong><br>
+                            <span class="badge {% if dieta.producto_dieta.stock_kg > 0 %}bg-success{% else %}bg-warning{% endif %}">
+                                {{ dieta.producto_dieta.stock_kg }} kg
+                            </span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Total dieta:</strong><br>
+                            {{ dieta.total_kg }} kg
+                        </div>
+                        <div class="col-6">
+                            <strong>Ingredientes:</strong><br>
+                            {{ dieta.detalles.count }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- PREPARACIONES -->
+                {% if dieta.preparaciones.exists %}
+                <div class="mb-3">
+                    <div class="alert alert-info small py-1">
+                        <i class="bi bi-clock-history"></i>
+                        Última preparación: {{ dieta.preparaciones.first.fecha_hora|date:"d/m/Y" }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- ACCIONES -->
+                <div class="mt-auto">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'editar_dieta' dieta.id %}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        
+                        <button class="btn btn-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#prepararModal{{ dieta.id }}"
+                                {% if dieta.detalles.count == 0 %}disabled{% endif %}>
+                            <i class="bi bi-gear"></i> Preparar
+                        </button>
+                        
+                        <button type="button"
+                                class="btn btn-outline-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#eliminarModal{{ dieta.id }}">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-{% endfor %}
 
+    <!-- MODAL PREPARAR -->
+    <div class="modal fade" id="prepararModal{{ dieta.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Preparar dieta</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Vas a preparar: <strong>{{ dieta.nombre }}</strong></p>
+                    <p><strong>Cantidad:</strong> {{ dieta.total_kg }} kg</p>
+                    
+                    <form method="post" 
+                          action="{% url 'preparar_dieta' dieta.id %}"
+                          id="formPreparar{{ dieta.id }}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones (opcional)</label>
+                            <textarea name="observaciones" 
+                                      class="form-control" 
+                                      rows="2"></textarea>
+                        </div>
+                    </form>
+                    
+                    <div class="alert alert-warning small">
+                        <strong>⚠️ Esta acción:</strong><br>
+                        1. Descontará stock de ingredientes<br>
+                        2. Creará salida tipo VENTA<br>
+                        3. Aumentará stock del producto dieta<br>
+                        4. Registrará entrada automática
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success"
+                            onclick="document.getElementById('formPreparar{{ dieta.id }}').submit()">
+                        Sí, preparar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ELIMINAR -->
+    <div class="modal fade" id="eliminarModal{{ dieta.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Eliminar dieta</h5>
+                </div>
+                <div class="modal-body">
+                    ¿Seguro que deseas eliminar la dieta "{{ dieta.nombre }}"?
+                    <br><br>
+                    <span class="text-danger">
+                        <strong>⚠️ Atención:</strong> Esta acción enviará la dieta a la papelera.
+                    </span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <form method="post" action="{% url 'eliminar_dieta' dieta.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            Sí, eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-basket" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-3">No hay dietas registradas</p>
+            <a href="{% url 'crear_dieta' %}" class="btn btn-primary">
+                Crear primera dieta
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Botón para papelera -->
+<div class="mt-4 text-center">
+    <a href="{% url 'papelera_dietas' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-trash"></i> Ver papelera
+    </a>
 </div>
 
 {% endblock %}

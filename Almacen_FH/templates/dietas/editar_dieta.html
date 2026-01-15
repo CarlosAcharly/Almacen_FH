@@ -1,131 +1,289 @@
 {% extends "layout/base.html" %}
-{% load dietas_extras %}
 
-{% block title %}Editar Dieta{% endblock %}
+{% block title %}Editar Dieta: {{ dieta.nombre }}{% endblock %}
 
 {% block content %}
 
-<!-- ENCABEZADO -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="mb-1">
-            🐖 Dieta: <strong>{{ dieta.nombre }}</strong>
-        </h4>
-        <span class="text-muted">
-            Etapa: {{ dieta.get_etapa_display }}
-        </span>
-    </div>
-</div>
-
-{% if dieta.preparada %}
-<div class="alert alert-success">
-    ✅ Esta dieta ya fue preparada el
-    <strong>{{ dieta.fecha_preparacion|date:"d/m/Y H:i" }}</strong>
-</div>
-{% endif %}
-
-<!-- CARD PRINCIPAL -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-
-        <!-- ========================= -->
-        <!-- FORM GUARDAR DIETA -->
-        <!-- ========================= -->
-        <form method="post" id="formGuardar">
-            {% csrf_token %}
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Ingrediente</th>
-                            <th class="text-center" width="180">Kg</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for ingrediente in ingredientes %}
-                        <tr>
-                            <td><strong>{{ ingrediente.nombre }}</strong></td>
-                            <td>
-                                <input type="number"
-                                       step="0.01"
-                                       min="0"
-                                       name="kg_{{ ingrediente.id }}"
-                                       class="form-control kg-input text-center"
-                                       value="{{ detalles|get_item:ingrediente.id|default:0 }}"
-                                       {% if dieta.preparada %}disabled{% endif %}>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-
-                    <tfoot class="table-secondary">
-                        <tr>
-                            <th class="text-end">Total (kg)</th>
-                            <th>
-                                <input type="text"
-                                       id="totalKg"
-                                       class="form-control fw-bold text-center bg-light"
+<div class="container-fluid">
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'lista_dietas' %}">Dietas</a></li>
+            <li class="breadcrumb-item active">Editar: {{ dieta.nombre }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <!-- COLUMNA IZQUIERDA: INGREDIENTES -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📝 Ingredientes de la dieta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formIngredientes">
+                        {% csrf_token %}
+                        <input type="hidden" name="guardar_ingredientes" value="1">
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ingrediente</th>
+                                        <th width="180" class="text-center">Cantidad (kg)</th>
+                                        <th width="120" class="text-center">Stock Disponible</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ingrediente in ingredientes %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ ingrediente.nombre }}</strong>
+                                        </td>
+                                        <td>
+                                            <input type="number"
+                                                   step="0.01"
+                                                   min="0"
+                                                   name="kg_{{ ingrediente.id }}"
+                                                   class="form-control kg-input text-center"
+                                                   value="{{ detalles|get_item:ingrediente.id|default:0 }}">
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {% if ingrediente.stock_kg > 0 %}bg-info{% else %}bg-danger{% endif %}">
+                                                {{ ingrediente.stock_kg }} kg
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4">
+                                            No hay ingredientes registrados en el sistema
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-secondary">
+                                    <tr>
+                                        <th class="text-end">Total de la dieta:</th>
+                                        <th class="text-center">
+                                            <span id="totalDieta" class="fw-bold h5">
+                                                {{ total_actual|floatformat:2 }} kg
+                                            </span>
+                                        </th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-3 d-flex gap-2">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalGuardarIngredientes">
+                                💾 Guardar ingredientes
+                            </button>
+                            <a href="{% url 'lista_dietas' %}" class="btn btn-outline-secondary">
+                                ← Volver a lista
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- HISTORIAL DE PREPARACIONES -->
+            {% if preparaciones %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">📋 Historial de preparaciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fecha y Hora</th>
+                                    <th>Usuario</th>
+                                    <th>Cantidad</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prep in preparaciones %}
+                                <tr>
+                                    <td>{{ prep.fecha_hora|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ prep.usuario.username }}</td>
+                                    <td><strong>{{ prep.cantidad_preparada }} kg</strong></td>
+                                    <td>{{ prep.observaciones|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">
+                            Total preparado: {{ dieta.producto_dieta.stock_kg }} kg
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- COLUMNA DERECHA: INFORMACIÓN Y ACCIONES -->
+        <div class="col-lg-4">
+            <!-- INFORMACIÓN DE LA DIETA -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📋 Información de la dieta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formInfo">
+                        {% csrf_token %}
+                        <input type="hidden" name="actualizar_info" value="1">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre de la dieta</label>
+                            {{ form.nombre }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Etapa</label>
+                            {{ form.etapa }}
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Producto asociado</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control bg-light" 
+                                       value="{{ dieta.producto_dieta.nombre }}"
                                        readonly>
-                            </th>
-                        </tr>
-                    </tfoot>
-                </table>
+                                <span class="input-group-text">
+                                    Stock: <strong class="ms-1">{{ dieta.producto_dieta.stock_kg }} kg</strong>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="button"
+                                    class="btn btn-info"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalActualizarInfo">
+                                📝 Actualizar información
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <div class="d-flex gap-2 mt-3">
-                <button type="button"
-                        class="btn btn-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#confirmGuardar"
-                        {% if dieta.preparada %}disabled{% endif %}>
-                    💾 Guardar dieta
-                </button>
-
-                <a href="{% url 'lista_dietas' %}" class="btn btn-secondary">
-                    Cancelar
-                </a>
+            
+            <!-- PREPARAR DIETA -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">⚙️ Preparar dieta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'preparar_dieta' dieta.id %}" id="formPreparar">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cantidad a preparar</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control text-center fw-bold" 
+                                       value="{{ dieta.total_kg }} kg"
+                                       readonly>
+                                <span class="input-group-text">Total</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Observaciones (opcional)</label>
+                            <textarea name="observaciones" 
+                                      class="form-control" 
+                                      rows="3"
+                                      placeholder="Ej: Preparación para el lote #15..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning small">
+                            <strong>⚠️ Esta acción realizará:</strong><br>
+                            1. Descuento de stock de ingredientes<br>
+                            2. Registro de salida tipo VENTA<br>
+                            3. Aumento de stock del producto dieta<br>
+                            4. Registro de entrada automática<br>
+                            5. Se puede repetir múltiples veces
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="button"
+                                    class="btn btn-success"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalPreparar">
+                                ⚙️ Preparar dieta ahora
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
-
-        <!-- ========================= -->
-        <!-- FORM PREPARAR DIETA -->
-        <!-- ========================= -->
-        {% if not dieta.preparada %}
-        <form method="post"
-              action="{% url 'preparar_dieta' dieta.id %}"
-              class="mt-3">
-            {% csrf_token %}
-            <button type="button"
-                    class="btn btn-success w-100"
-                    data-bs-toggle="modal"
-                    data-bs-target="#confirmPreparar">
-                ⚙️ Preparar dieta
-            </button>
-        </form>
-        {% endif %}
+            
+            <!-- ESTADO DE LA DIETA -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-body text-center">
+                    <h6 class="mb-3">📊 Resumen</h6>
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="p-2 border rounded">
+                                <small class="text-muted d-block">Ingredientes</small>
+                                <span class="h4">{{ dieta.detalles.count }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-2 border rounded">
+                                <small class="text-muted d-block">Preparaciones</small>
+                                <span class="h4">{{ dieta.preparaciones.count }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded">
+                                <small class="text-muted d-block">Stock producto</small>
+                                <span class="h4">{{ dieta.producto_dieta.stock_kg|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded">
+                                <small class="text-muted d-block">Total dieta</small>
+                                <span class="h4">{{ dieta.total_kg|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- MODAL GUARDAR -->
-<!-- ========================= -->
-<div class="modal fade" id="confirmGuardar" tabindex="-1">
+<!-- MODALES DE CONFIRMACIÓN -->
+<!-- Modal Guardar Ingredientes -->
+<div class="modal fade" id="modalGuardarIngredientes" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Guardar dieta</h5>
+                <h5 class="modal-title">💾 Guardar ingredientes</h5>
             </div>
             <div class="modal-body">
-                ¿Seguro que deseas guardar la dieta?
+                <p>¿Seguro que deseas guardar los cambios en los ingredientes?</p>
+                <div class="alert alert-info small">
+                    Esta acción <strong>no afecta el stock</strong>. Solo guarda la receta de la dieta.
+                    El stock se descontará al preparar la dieta.
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
-                    No
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
                 </button>
-                <button class="btn btn-primary"
-                        onclick="document.getElementById('formGuardar').submit()">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('formIngredientes').submit()">
                     Sí, guardar
                 </button>
             </div>
@@ -133,48 +291,78 @@
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- MODAL PREPARAR -->
-<!-- ========================= -->
-<div class="modal fade" id="confirmPreparar" tabindex="-1">
+<!-- Modal Actualizar Información -->
+<div class="modal fade" id="modalActualizarInfo" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Preparar dieta</h5>
+                <h5 class="modal-title">📝 Actualizar información</h5>
             </div>
             <div class="modal-body">
-                ⚠️ Se descontará el stock de los ingredientes
-                y se generará una entrada de la dieta.
-                <br><br>
-                ¿Deseas continuar?
+                ¿Seguro que deseas actualizar la información de la dieta?
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     Cancelar
                 </button>
-                <button class="btn btn-success"
-                        onclick="this.closest('.modal').previousElementSibling.submit()">
-                    Sí, preparar
+                <button type="button" class="btn btn-info" onclick="document.getElementById('formInfo').submit()">
+                    Sí, actualizar
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ========================= -->
-<!-- SCRIPT TOTAL KG -->
-<!-- ========================= -->
+<!-- Modal Preparar Dieta -->
+<div class="modal fade" id="modalPreparar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">⚙️ Preparar dieta</h5>
+            </div>
+            <div class="modal-body">
+                <p><strong>¿Estás seguro de preparar esta dieta?</strong></p>
+                
+                <div class="alert alert-warning">
+                    <p class="mb-1"><strong>Cantidad a preparar:</strong> {{ dieta.total_kg }} kg</p>
+                    <p class="mb-0"><strong>Producto generado:</strong> {{ dieta.producto_dieta.nombre }}</p>
+                </div>
+                
+                <div class="alert alert-danger">
+                    <small>
+                        <strong>⚠️ Esta acción NO se puede deshacer automáticamente.</strong><br>
+                        Se afectará el stock de ingredientes y se registrarán movimientos.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="document.getElementById('formPreparar').submit()">
+                    Sí, preparar ahora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT PARA CALCULAR TOTAL -->
 <script>
 function recalcularTotal() {
     let total = 0;
-    document.querySelectorAll('.kg-input').forEach(i => {
-        total += parseFloat(i.value || 0);
+    document.querySelectorAll('.kg-input').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        total += value;
     });
-    document.getElementById('totalKg').value = total.toFixed(2);
+    document.getElementById('totalDieta').textContent = total.toFixed(2) + ' kg';
 }
-document.querySelectorAll('.kg-input')
-    .forEach(i => i.addEventListener('input', recalcularTotal));
-recalcularTotal();
+
+// Calcular total al cargar y al cambiar valores
+document.addEventListener('DOMContentLoaded', recalcularTotal);
+document.querySelectorAll('.kg-input').forEach(input => {
+    input.addEventListener('input', recalcularTotal);
+});
 </script>
 
 {% endblock %}

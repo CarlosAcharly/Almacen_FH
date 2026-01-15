@@ -1,5 +1,4 @@
 {% extends "layout/base.html" %}
-{% load dietas_extras %}
 
 {% block title %}Nueva Dieta{% endblock %}
 
@@ -7,42 +6,90 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">🐖 Crear nueva dieta</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'crear_dieta' %}" id="formCrearDieta">
+                    {% csrf_token %}
 
-        <div class="glass-form">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre de la dieta</label>
+                        {{ form.nombre|add_class:"form-control" }}
+                        <small class="text-muted">Ej: Dieta Gestación Premium, Dieta Engorda Básica</small>
+                    </div>
 
-            <h5 class="glass-form-title">
-                🐖 Crear nueva dieta
-            </h5>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Etapa del cerdo</label>
+                        {{ form.etapa|add_class:"form-select" }}
+                        <small class="text-muted">Selecciona la etapa para la que está diseñada esta dieta</small>
+                    </div>
 
-            <form method="post" action="{% url 'crear_dieta' %}">
-                {% csrf_token %}
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>⚠️ Importante:</strong> Al crear la dieta se generará automáticamente un producto 
+                            en el catálogo con stock inicial 0. Podrás agregar los ingredientes después.
+                        </small>
+                    </div>
 
-                <div class="mb-3">
-                    <label class="glass-label">Nombre</label>
-                    {{ form.nombre|add_class:"glass-input form-control" }}
-                </div>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'lista_dietas' %}"
+                           class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
 
-                <div class="mb-4">
-                    <label class="glass-label">Etapa</label>
-                    {{ form.etapa|add_class:"glass-input form-select" }}
-                </div>
-
-                <div class="d-flex gap-2 justify-content-end">
-                    <a href="{% url 'lista_dietas' %}"
-                       class="btn glass-btn glass-btn-secondary">
-                        Cancelar
-                    </a>
-
-                    <button class="btn glass-btn glass-btn-primary">
-                        💾 Crear dieta
-                    </button>
-                </div>
-
-            </form>
-
+                        <button type="button"
+                                class="btn btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalCrearDieta">
+                            💾 Crear dieta
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-
     </div>
 </div>
+
+<!-- Modal Crear Dieta -->
+<div class="modal fade" id="modalCrearDieta" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear nueva dieta</h5>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de crear la dieta <strong id="nombreDietaPreview"></strong>?</p>
+                <div class="alert alert-warning small">
+                    Se creará automáticamente un producto en el catálogo con nombre "Dieta [nombre]" 
+                    y stock inicial 0. Después podrás agregar los ingredientes.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('formCrearDieta').submit()">
+                    Sí, crear dieta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para mostrar el nombre en el modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nombreInput = document.getElementById('id_nombre');
+    const modal = document.getElementById('modalCrearDieta');
+    
+    // Actualizar preview cuando se abre el modal
+    modal.addEventListener('show.bs.modal', function() {
+        const nombre = nombreInput.value || '(sin nombre)';
+        document.getElementById('nombreDietaPreview').textContent = nombre;
+    });
+});
+</script>
 
 {% endblock %}

@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
+from django.conf import settings  # Añade esta importación
 from catalogos.models import Producto
 
 
@@ -95,3 +96,28 @@ class DetalleDieta(models.Model):
 
     def __str__(self):
         return f"{self.producto.nombre} - {self.kg} kg"
+
+
+class PreparacionDieta(models.Model):
+    """Registro de cada vez que se prepara una dieta"""
+    dieta = models.ForeignKey(
+        Dieta,
+        on_delete=models.CASCADE,
+        related_name='preparaciones'
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # CORREGIDO: Usar settings.AUTH_USER_MODEL
+        on_delete=models.PROTECT
+    )
+    fecha_hora = models.DateTimeField(default=timezone.now)
+    cantidad_preparada = models.DecimalField(
+        max_digits=14,
+        decimal_places=2
+    )
+    observaciones = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-fecha_hora']
+    
+    def __str__(self):
+        return f"{self.dieta.nombre} - {self.cantidad_preparada}kg"

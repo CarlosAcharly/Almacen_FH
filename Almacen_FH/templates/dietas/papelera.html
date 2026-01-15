@@ -1,62 +1,69 @@
 {% extends "layout/base.html" %}
+
 {% block title %}Papelera de Dietas{% endblock %}
 
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-semibold">🗑️ Papelera de Dietas</h4>
-
-    <a href="{% url 'lista_dietas' %}" class="btn btn-outline-secondary">
-        ⬅️ Volver a dietas
+    <h4 class="fw-semibold">🗑️ Papelera de dietas</h4>
+    <a href="{% url 'lista_dietas' %}" class="btn btn-primary">
+        ← Volver a dietas
     </a>
 </div>
 
-<div class="row g-4">
-
-    {% for dieta in dietas %}
-    <div class="col-xl-3 col-lg-4 col-md-6">
-        <div class="glass-card border border-danger">
-
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="glass-card-title">
-                        {{ dieta.nombre }}
-                    </div>
-                    <div class="glass-card-subtitle">
-                        {{ dieta.get_etapa_display }}
-                    </div>
-                </div>
-
-                <div class="glass-card-icon text-danger">
-                    <i class="bi bi-trash-fill"></i>
-                </div>
-            </div>
-
-            <div class="glass-divider"></div>
-
-            <div class="small text-muted">
-                Total: {{ dieta.total_kg }} kg
-            </div>
-
-            <div class="glass-divider"></div>
-
-            <div class="glass-actions">
-                <a href="{% url 'restaurar_dieta' dieta.id %}"
-                   class="btn btn-success btn-sm w-100">
-                    ♻️ Restaurar
-                </a>
-            </div>
-
-        </div>
-    </div>
-    {% empty %}
-    <div class="col-12">
-        <div class="glass-card text-center text-muted">
-            La papelera está vacía
-        </div>
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endfor %}
+{% endif %}
 
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Nombre</th>
+                <th>Etapa</th>
+                <th>Producto asociado</th>
+                <th>Total kg</th>
+                <th>Eliminada el</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dieta in dietas %}
+            <tr>
+                <td><strong>{{ dieta.nombre }}</strong></td>
+                <td>
+                    <span class="badge bg-secondary">
+                        {{ dieta.get_etapa_display }}
+                    </span>
+                </td>
+                <td>{{ dieta.producto_dieta.nombre }}</td>
+                <td>{{ dieta.total_kg }} kg</td>
+                <td>{{ dieta.eliminada_en|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <form method="post" 
+                          action="{% url 'restaurar_dieta' dieta.id %}"
+                          class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="bi bi-arrow-clockwise"></i> Restaurar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    La papelera está vacía
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 {% endblock %}

@@ -4,16 +4,26 @@ from decimal import Decimal
 from django.utils import timezone
 
 from movimientos.models import Entrada, Salida
-from .models import Dieta
+from catalogos.models import Cliente
+from .models import Dieta, PreparacionDieta
+
+
+def asegurar_cliente_interno():
+    """Asegura que exista el cliente 'Interno' para salidas de dieta"""
+    cliente, created = Cliente.objects.get_or_create(
+        nombre='Interno',
+        defaults={'telefono': 'N/A'}
+    )
+    return cliente
 
 
 @transaction.atomic
-def preparar_dieta(dieta: Dieta, usuario):
+def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
     """
-    Prepara una dieta:
-    - Descuenta ingredientes (SALIDA)
+    Prepara una dieta (puede ejecutarse múltiples veces):
+    - Descuenta ingredientes (SALIDA con tipo 'VENTA' y cliente 'Interno')
     - Aumenta stock del producto dieta (ENTRADA)
-    - Puede ejecutarse múltiples veces
+    - Registra la preparación en historial
     """
 
     detalles = dieta.detalles.select_related(
@@ -48,7 +58,12 @@ def preparar_dieta(dieta: Dieta, usuario):
             )
 
     # =========================
-    # 2️⃣ SALIDAS (INGREDIENTES)
+    # 2️⃣ PREPARAR CLIENTE INTERNO
+    # =========================
+    cliente_interno = asegurar_cliente_interno()
+
+    # =========================
+    # 3️⃣ SALIDAS (INGREDIENTES) - Tipo: Venta, Cliente: Interno
     # =========================
     for d in detalles:
         producto = d.producto
@@ -58,27 +73,42 @@ def preparar_dieta(dieta: Dieta, usuario):
         producto.stock_kg -= kg
         producto.save(update_fields=['stock_kg'])
 
-        # Registrar salida
+        # Registrar salida tipo VENTA para cada ingrediente
         Salida.objects.create(
             producto=producto,
             kg=kg,
             usuario=usuario,
-            tipo='DIETA',
-            fecha_hora=timezone.now()
+            tipo='VENTA',
+            fecha_hora=timezone.now(),
+            observaciones=f"Preparación de dieta: {dieta.nombre}"
         )
 
     # =========================
-    # 3️⃣ ENTRADA (DIETA TERMINADA)
+    # 4️⃣ ENTRADA (DIETA TERMINADA)
     # =========================
-    dieta.recalcular_total()
+    cantidad_preparada = dieta.total_kg
 
     producto_dieta = dieta.producto_dieta
-    producto_dieta.stock_kg += dieta.total_kg
+    producto_dieta.stock_kg += cantidad_preparada
     producto_dieta.save(update_fields=['stock_kg'])
 
+    # Registrar entrada automática del producto dieta
     Entrada.objects.create(
         producto=producto_dieta,
-        kg=dieta.total_kg,
+        kg=cantidad_preparada,
         usuario=usuario,
-        fecha_hora=timezone.now()
+        fecha_hora=timezone.now(),
+        observaciones=f"Preparación de dieta: {dieta.nombre}"
     )
+
+    # =========================
+    # 5️⃣ REGISTRAR PREPARACIÓN EN HISTORIAL
+    # =========================
+    PreparacionDieta.objects.create(
+        dieta=dieta,
+        usuario=usuario,
+        cantidad_preparada=cantidad_preparada,
+        observaciones=observaciones
+    )
+
+    return cantidad_preparada

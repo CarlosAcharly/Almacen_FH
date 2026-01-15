@@ -11,5 +11,4 @@ urlpatterns = [
     path('papelera/', views.papelera_dietas, name='papelera_dietas'),
     path('papelera/<int:dieta_id>/restaurar/', views.restaurar_dieta, name='restaurar_dieta'),
     path('dieta/<int:dieta_id>/eliminar/', views.eliminar_dieta, name='eliminar_dieta'),
-
 ]
