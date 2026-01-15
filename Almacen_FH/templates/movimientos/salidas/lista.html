@@ -15,41 +15,45 @@
                 <thead class="table-dark text-center">
                     <tr>
                         <th>Fecha</th>
+                        <th>Tipo</th>
                         <th>Producto</th>
                         <th>Cantidad (kg)</th>
-                        <th>Destino</th>
+                        <th>Destino / Descripción</th>
                         <th>Usuario</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for salida in salidas %}
+                    {% for movimiento in movimientos %}
                     <tr>
-                        <td class="text-center">{{ salida.fecha_hora|date:"d/m/Y H:i" }}</td>
+                        <td class="text-center">{{ movimiento.fecha_hora|date:"d/m/Y H:i" }}</td>
+                        <td class="text-center">{{ movimiento.tipo }}</td>
                         <td>
-                            {% for detalle in salida.detalles.all %}
+                            {% for detalle in movimiento.detalles.all %}
                                 {{ detalle.producto.nombre }}<br>
                             {% endfor %}
                         </td>
                         <td class="text-end">
-                            {% for detalle in salida.detalles.all %}
-                                {{ detalle.kg|floatformat:2 }} kg<br>
+                            {% for detalle in movimiento.detalles.all %}
+                                {{ detalle.total_kg|floatformat:2 }} kg<br>
                             {% endfor %}
                         </td>
                         <td>
-                            {% if salida.tipo == "VENTA" %}
-                                {{ salida.cliente.nombre|default:"Cliente no asignado" }}
-                            {% elif salida.tipo == "TRASLADO" %}
-                                {{ salida.lugar.nombre|default:"Lugar no asignado" }}
+                            {% if movimiento.tipo == "VENTA" %}
+                                {{ movimiento.cliente.nombre|default:"Cliente no asignado" }}
+                            {% elif movimiento.tipo == "TRASLADO" %}
+                                {{ movimiento.lugar.nombre|default:"Lugar no asignado" }}
+                            {% elif movimiento.tipo == "DIETA" %}
+                                {{ movimiento.descripcion|default:"Dieta interna" }}
                             {% else %}
-                                Salida Pendiente
+                                {{ movimiento.descripcion|default:"Pendiente" }}
                             {% endif %}
                         </td>
-                        <td>{{ salida.usuario.get_full_name|default:salida.usuario.username }}</td>
+                        <td>{{ movimiento.usuario.get_full_name|default:movimiento.usuario.username }}</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted">
-                            No hay salidas registradas
+                        <td colspan="6" class="text-center text-muted">
+                            No hay movimientos registrados
                         </td>
                     </tr>
                     {% endfor %}

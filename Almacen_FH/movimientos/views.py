@@ -5,7 +5,7 @@ from django.db import transaction
 from catalogos.models import Producto
 from .forms import (
     MovimientoForm, MovimientoDetalleFormSet,
-    EntradaForm, SalidaForm, MermaForm
+    EntradaForm, SalidaForm, MermaForm, DietaForm
 )
 from .models import Entrada, Salida, Merma, Movimiento, MovimientoDetalle
 
@@ -41,20 +41,30 @@ def nueva_entrada(request):
 
 
 # =========================
-# SALIDAS
+# SALIDAS (USANDO MOVIMIENTO)
 # =========================
 @login_required
 def lista_salidas(request):
-    salidas = Movimiento.objects.select_related(
+    # Mostrar TODOS los movimientos (ventas, traslados, pedidos, dietas)
+    movimientos = Movimiento.objects.select_related(
         'cliente', 'lugar', 'chofer', 'unidad', 'usuario'
     ).prefetch_related('detalles__producto').order_by('-fecha_hora')
-    return render(request, 'movimientos/salidas/lista.html', {'salidas': salidas})
+    
+    # Filtrar por tipo si se solicita
+    tipo_filtro = request.GET.get('tipo')
+    if tipo_filtro:
+        movimientos = movimientos.filter(tipo=tipo_filtro)
+    
+    return render(request, 'movimientos/salidas/lista.html', {
+        'movimientos': movimientos,
+        'tipo_filtro': tipo_filtro
+    })
 
 
 @login_required
 def crear_salida(request):
-    prefix = 'detalles'  # Debe coincidir con el prefijo del formset
-    ticket_id = None  # Inicialmente no hay ticket
+    prefix = 'detalles'
+    ticket_id = None
 
     if request.method == 'POST':
         form = MovimientoForm(request.POST)
@@ -64,17 +74,15 @@ def crear_salida(request):
             with transaction.atomic():
                 movimiento = form.save(commit=False)
                 movimiento.usuario = request.user
-                movimiento.folio = f"SAL-{Movimiento.objects.count() + 1:05d}"
-                movimiento.save()
+                movimiento.save()  # El folio se genera automáticamente en el modelo
 
                 detalles = formset.save(commit=False)
                 for detalle in detalles:
                     detalle.movimiento = movimiento
                     detalle.save()
 
-            # Guardado exitoso: pasar el ID del movimiento para el modal
             ticket_id = movimiento.id
-            form = MovimientoForm()  # Reiniciar form
+            form = MovimientoForm()
             formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
 
     else:
@@ -88,7 +96,65 @@ def crear_salida(request):
         'formset': formset,
         'productos': productos,
         'prefix': prefix,
-        'ticket_id': ticket_id,  # <-- Para que el modal se active si guardó
+        'ticket_id': ticket_id,
+    })
+
+
+# =========================
+# DIETAS (USANDO MOVIMIENTO TIPO='DIETA')
+# =========================
+@login_required
+def lista_dietas(request):
+    dietas = Movimiento.objects.filter(tipo='DIETA').select_related(
+        'usuario'
+    ).prefetch_related('detalles__producto').order_by('-fecha_hora')
+    
+    return render(request, 'templates/dietas/lista.html', {
+        'dietas': dietas
+    })
+
+
+@login_required
+def preparar_dieta(request):
+    prefix = 'detalles'
+    ticket_id = None
+
+    if request.method == 'POST':
+        # Forzar tipo DIETA
+        post_data = request.POST.copy()
+        post_data['tipo'] = 'DIETA'
+        
+        form = MovimientoForm(post_data)
+        formset = MovimientoDetalleFormSet(post_data, prefix=prefix)
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                movimiento = form.save(commit=False)
+                movimiento.tipo = 'DIETA'  # Asegurar tipo DIETA
+                movimiento.usuario = request.user
+                movimiento.save()
+
+                detalles = formset.save(commit=False)
+                for detalle in detalles:
+                    detalle.movimiento = movimiento
+                    detalle.save()
+
+            ticket_id = movimiento.id
+            form = MovimientoForm(initial={'tipo': 'DIETA'})
+            formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
+
+    else:
+        form = MovimientoForm(initial={'tipo': 'DIETA'})
+        formset = MovimientoDetalleFormSet(queryset=MovimientoDetalle.objects.none(), prefix=prefix)
+
+    productos = Producto.objects.filter(activo=True)
+
+    return render(request, 'templates/dietas/crear_dieta.html', {
+        'form': form,
+        'formset': formset,
+        'productos': productos,
+        'prefix': prefix,
+        'ticket_id': ticket_id,
     })
 
 
@@ -113,6 +179,7 @@ def imprimir_ticket(request, movimiento_id):
         'total_kg': round(total_kg, 2),
         'total_ton': round(total_ton, 3),
     })
+
 
 # =========================
 # MERMAS
@@ -152,7 +219,7 @@ def crear_merma(request):
 
 
 # =========================
-# KARDEX POR PRODUCTO
+# KARDEX POR PRODUCTO (ACTUALIZADO)
 # =========================
 @login_required
 def kardex_producto(request, producto_id):
@@ -160,8 +227,12 @@ def kardex_producto(request, producto_id):
     peso_bulto = producto.peso_por_bulto or 0
 
     entradas = Entrada.objects.filter(producto=producto)
-    salidas = Salida.objects.filter(producto=producto)
     mermas = Merma.objects.filter(producto=producto)
+    
+    # Obtener movimientos (incluyendo dietas) desde MovimientoDetalle
+    movimientos_detalle = MovimientoDetalle.objects.filter(
+        producto=producto
+    ).select_related('movimiento', 'movimiento__usuario')
 
     movimientos = []
 
@@ -181,13 +252,14 @@ def kardex_producto(request, producto_id):
             'usuario': e.usuario
         })
 
-    # SALIDAS
-    for s in salidas:
+    # MOVIMIENTOS (SALIDAS, DIETAS, etc.)
+    for md in movimientos_detalle:
         movimientos.append({
-            'fecha': s.fecha_hora,
-            'tipo': f'SALIDA ({s.tipo})',
-            'cantidad': -total_kg(s),
-            'usuario': s.usuario
+            'fecha': md.movimiento.fecha_hora,
+            'tipo': f'{md.movimiento.tipo}',
+            'cantidad': -md.total_kg,
+            'usuario': md.movimiento.usuario,
+            'folio': md.movimiento.folio
         })
 
     # MERMAS
@@ -210,4 +282,23 @@ def kardex_producto(request, producto_id):
     return render(request, 'movimientos/kardex.html', {
         'producto': producto,
         'movimientos': movimientos
+    })
+
+
+# =========================
+# DETALLE DE MOVIMIENTO
+# =========================
+@login_required
+def detalle_movimiento(request, movimiento_id):
+    movimiento = get_object_or_404(Movimiento, id=movimiento_id)
+    detalles = movimiento.detalles.select_related('producto').all()
+    
+    total_kg = sum(d.kg for d in detalles)
+    total_ton = sum(d.toneladas for d in detalles)
+    
+    return render(request, 'movimientos/detalle.html', {
+        'movimiento': movimiento,
+        'detalles': detalles,
+        'total_kg': total_kg,
+        'total_ton': total_ton
     })

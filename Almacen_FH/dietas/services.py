@@ -3,27 +3,20 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 from django.utils import timezone
 
-from movimientos.models import Entrada, Salida
+from movimientos.models import Entrada, Movimiento, MovimientoDetalle
 from catalogos.models import Cliente
 from .models import Dieta, PreparacionDieta
-
-
-def asegurar_cliente_interno():
-    """Asegura que exista el cliente 'Interno' para salidas de dieta"""
-    cliente, created = Cliente.objects.get_or_create(
-        nombre='Interno',
-        defaults={'telefono': 'N/A'}
-    )
-    return cliente
 
 
 @transaction.atomic
 def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
     """
-    Prepara una dieta (puede ejecutarse múltiples veces):
-    - Descuenta ingredientes (SALIDA con tipo 'VENTA')
-    - Aumenta stock del producto dieta (ENTRADA)
-    - Registra la preparación en historial
+    Prepara una dieta usando el sistema unificado de movimientos:
+    1. Valida stock de ingredientes
+    2. Crea Movimiento tipo 'DIETA'
+    3. Crea MovimientoDetalle para cada ingrediente (descuenta stock automáticamente)
+    4. Crea Entrada para el producto dieta (aumenta stock)
+    5. Registra la preparación en historial
     """
 
     detalles = dieta.detalles.select_related(
@@ -58,52 +51,60 @@ def preparar_dieta(dieta: Dieta, usuario, observaciones=''):
             )
 
     # =========================
-    # 2️⃣ SALIDAS (INGREDIENTES) - Tipo: Venta
+    # 2️⃣ CREAR MOVIMIENTO (REGISTRO PRINCIPAL)
     # =========================
+    movimiento = Movimiento.objects.create(
+        tipo='DIETA',
+        usuario=usuario,
+        descripcion=f"Preparación: {dieta.nombre} - {observaciones[:50]}" if observaciones else f"Preparación: {dieta.nombre}",
+        folio=f"DIETA-{Movimiento.objects.filter(tipo='DIETA').count() + 1:05d}",
+        fecha_hora=timezone.now()
+    )
+
+    # =========================
+    # 3️⃣ CREAR DETALLES DEL MOVIMIENTO (DESCUENTA INGREDIENTES)
+    # =========================
+    cantidad_preparada = Decimal('0')
+    
     for d in detalles:
         producto = d.producto
         kg = Decimal(d.kg)
-
-        # Descontar stock
-        producto.stock_kg -= kg
-        producto.save(update_fields=['stock_kg'])
-
-        # Registrar salida tipo VENTA
-        Salida.objects.create(
+        
+        # ✅ IMPORTANTE: Esto descuenta stock automáticamente en MovimientoDetalle.save()
+        MovimientoDetalle.objects.create(
+            movimiento=movimiento,
             producto=producto,
             kg=kg,
-            usuario=usuario,
-            tipo='VENTA',
-            fecha_hora=timezone.now()
-            # Sin observaciones
+            toneladas=0,
+            bultos=0
         )
+        
+        cantidad_preparada += kg
 
     # =========================
-    # 3️⃣ ENTRADA (DIETA TERMINADA)
+    # 4️⃣ ENTRADA (DIETA TERMINADA) - ¡YA ESTABA BIEN!
     # =========================
-    cantidad_preparada = dieta.total_kg
-
     producto_dieta = dieta.producto_dieta
-    producto_dieta.stock_kg += cantidad_preparada
-    producto_dieta.save(update_fields=['stock_kg'])
-
-    # Registrar entrada automática del producto dieta
+    
+    # ✅ Esto aumenta stock automáticamente en Entrada.save()
     Entrada.objects.create(
         producto=producto_dieta,
         kg=cantidad_preparada,
         usuario=usuario,
         fecha_hora=timezone.now()
-        # Sin observaciones
+        # proveedor=None se asume automáticamente
     )
 
     # =========================
-    # 4️⃣ REGISTRAR PREPARACIÓN EN HISTORIAL
+    # 5️⃣ REGISTRAR PREPARACIÓN EN HISTORIAL
     # =========================
     PreparacionDieta.objects.create(
         dieta=dieta,
         usuario=usuario,
         cantidad_preparada=cantidad_preparada,
-        observaciones=observaciones
+        observaciones=observaciones,
+        fecha_hora=timezone.now()
+        # Opcional: puedes agregar movimiento=moviemento si quieres enlazarlos
     )
 
     return cantidad_preparada

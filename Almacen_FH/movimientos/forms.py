@@ -35,7 +35,7 @@ class EntradaForm(forms.ModelForm):
 
 
 # =========================
-# SALIDAS
+# SALIDAS (OBSOLETO - MANTENER PARA COMPATIBILIDAD)
 # =========================
 class SalidaForm(forms.ModelForm):
     class Meta:
@@ -78,10 +78,11 @@ class SalidaForm(forms.ModelForm):
             peso_por_bulto = producto.peso_por_bulto or 0
             total_kg = kg + (toneladas * 1000) + (bultos * peso_por_bulto)
 
-        if total_kg > producto.stock_kg:
-            raise forms.ValidationError(
-                f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_kg} kg"
-            )
+        # 🚨 COMENTADO: Ya no validamos stock aquí porque Salida no modifica stock
+        # if total_kg > producto.stock_kg:
+        #     raise forms.ValidationError(
+        #         f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock_kg} kg"
+        #     )
 
         return cleaned_data
 
@@ -115,14 +116,24 @@ class MermaForm(forms.ModelForm):
 class MovimientoForm(forms.ModelForm):
     class Meta:
         model = Movimiento
-        fields = ['tipo', 'cliente', 'lugar', 'chofer', 'unidad']
+        fields = ['tipo', 'cliente', 'lugar', 'chofer', 'unidad', 'descripcion']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'cliente': forms.Select(attrs={'class': 'form-select'}),
             'lugar': forms.Select(attrs={'class': 'form-select'}),
             'chofer': forms.Select(attrs={'class': 'form-select'}),
             'unidad': forms.Select(attrs={'class': 'form-select'}),
+            'descripcion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Descripción opcional'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hacer campos opcionales para dietas
+        self.fields['cliente'].required = False
+        self.fields['lugar'].required = False
+        self.fields['chofer'].required = False
+        self.fields['unidad'].required = False
+        self.fields['descripcion'].required = False
 
 
 class MovimientoDetalleForm(forms.ModelForm):
@@ -130,16 +141,60 @@ class MovimientoDetalleForm(forms.ModelForm):
         model = MovimientoDetalle
         fields = ['producto', 'kg', 'toneladas', 'bultos']
         widgets = {
-            'producto': forms.Select(attrs={'class': 'form-select'}),
-            'kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'toneladas': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'bultos': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'producto': forms.Select(attrs={
+                'class': 'form-select producto-select',
+                'data-peso-bulto': '0'  # Para JavaScript
+            }),
+            'kg': forms.NumberInput(attrs={
+                'class': 'form-control kg-input',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'toneladas': forms.NumberInput(attrs={
+                'class': 'form-control ton-input',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'bultos': forms.NumberInput(attrs={
+                'class': 'form-control bultos-input',
+                'step': '1',
+                'min': '0'
+            }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Productos activos
+        self.fields['producto'].queryset = Producto.objects.filter(activo=True)
+        
+        # Hacer campos opcionales
+        self.fields['kg'].required = False
+        self.fields['toneladas'].required = False
+        self.fields['bultos'].required = False
 
+
+# Formset para movimientos
 MovimientoDetalleFormSet = inlineformset_factory(
     Movimiento,
     MovimientoDetalle,
     form=MovimientoDetalleForm,
-    extra=1,
-    can_delete=True
+    extra=3,  # Más líneas por defecto para dietas
+    can_delete=True,
+    min_num=1,
+    validate_min=True
 )
+
+
+# =========================
+# FORMULARIO ESPECÍFICO PARA DIETAS
+# =========================
+class DietaForm(forms.ModelForm):
+    class Meta:
+        model = Movimiento
+        fields = ['descripcion']  # Solo descripción para dietas
+        widgets = {
+            'descripcion': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Dieta para cerdos engorda lote 5'
+            }),
+        }

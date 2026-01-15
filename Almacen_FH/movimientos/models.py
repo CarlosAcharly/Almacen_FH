@@ -77,13 +77,14 @@ class Entrada(models.Model):
 
 
 # =========================
-# SALIDAS
+# SALIDAS (MODIFICADO: SOLO LECTURA/HISTÓRICO)
 # =========================
 class Salida(models.Model):
     TIPOS = (
         ('VENTA', 'Venta'),
         ('TRASLADO', 'Traslado'),
         ('PEDIDO', 'Pedido'),
+        ('DIETA', 'Dieta'),  # Mantener compatibilidad con datos existentes
     )
 
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
@@ -113,18 +114,21 @@ class Salida(models.Model):
         if total_kg <= 0:
             raise ValidationError("La salida debe ser mayor a 0 kg")
 
-        if total_kg > self.producto.stock_kg:
-            raise ValidationError(
-                f"Stock insuficiente. Disponible: {self.producto.stock_kg} kg"
-            )
+        # 🚨 COMENTADO: Ya no validamos stock aquí porque no restamos
+        # if total_kg > self.producto.stock_kg:
+        #     raise ValidationError(
+        #         f"Stock insuficiente. Disponible: {self.producto.stock_kg} kg"
+        #     )
 
     def save(self, *args, **kwargs):
         es_nuevo = self.pk is None
         self.clean()
 
-        if es_nuevo:
-            self.producto.stock_kg -= self.cantidad_total_kg
-            self.producto.save()
+        # 🚨 COMENTADO: Ya NO restamos stock aquí
+        # Esto evita la duplicación con MovimientoDetalle
+        # if es_nuevo:
+        #     self.producto.stock_kg -= self.cantidad_total_kg
+        #     self.producto.save()
 
         super().save(*args, **kwargs)
 
@@ -185,11 +189,15 @@ class Merma(models.Model):
         return f"Merma {self.producto} - {self.motivo}"
     
 
+# =========================
+# MOVIMIENTO (SISTEMA UNIFICADO)
+# =========================
 class Movimiento(models.Model):
     TIPOS = (
         ('VENTA', 'Venta'),
         ('TRASLADO', 'Traslado'),
         ('PEDIDO', 'Pedido'),
+        ('DIETA', 'Dieta'),  # ✅ AGREGADO: Para preparación de dietas
     )
 
     folio = models.CharField(max_length=20, unique=True)
@@ -201,10 +209,25 @@ class Movimiento(models.Model):
     chofer = models.ForeignKey(Chofer, on_delete=models.PROTECT, null=True, blank=True)
     unidad = models.ForeignKey(UnidadTransporte, on_delete=models.PROTECT, null=True, blank=True)
 
+    # ✅ AGREGADO: Para dietas internas (sin cliente)
+    descripcion = models.CharField(max_length=200, blank=True, null=True)
+
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+
+    class Meta:
+        ordering = ['-fecha_hora']
+
+    def save(self, *args, **kwargs):
+        if not self.folio:
+            # Generar folio automático
+            ultimo = Movimiento.objects.order_by('-id').first()
+            numero = ultimo.id + 1 if ultimo else 1
+            self.folio = f"{self.tipo[:3]}-{numero:05d}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.tipo} - {self.folio}"
+
 
 class MovimientoDetalle(models.Model):
     movimiento = models.ForeignKey(
@@ -245,3 +268,6 @@ class MovimientoDetalle(models.Model):
             self.producto.save()
 
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.producto} - {self.total_kg} kg"
