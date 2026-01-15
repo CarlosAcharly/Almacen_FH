@@ -1,66 +1,84 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from decimal import Decimal
+from django.utils import timezone
 
 from movimientos.models import Entrada, Salida
-from catalogos.models import Cliente
 from .models import Dieta
 
 
 @transaction.atomic
 def preparar_dieta(dieta: Dieta, usuario):
+    """
+    Prepara una dieta:
+    - Descuenta ingredientes (SALIDA)
+    - Aumenta stock del producto dieta (ENTRADA)
+    - Puede ejecutarse múltiples veces
+    """
 
-    detalles = dieta.detalles.select_related('producto')
+    detalles = dieta.detalles.select_related(
+        'producto',
+        'producto__categoria'
+    )
 
     if not detalles.exists():
         raise ValidationError("La dieta no tiene ingredientes")
 
     # =========================
-    # CLIENTE INTERNO
-    # =========================
-    cliente_interno, _ = Cliente.objects.get_or_create(
-        nombre='Interno',
-        defaults={'activo': True}
-    )
-
-    # =========================
-    # VALIDAR STOCK
+    # 1️⃣ VALIDACIONES
     # =========================
     for d in detalles:
-        if d.producto.stock_kg < d.kg:
+        producto = d.producto
+        kg = Decimal(d.kg)
+
+        if kg <= 0:
             raise ValidationError(
-                f"Stock insuficiente de {d.producto.nombre}. "
-                f"Disponible: {d.producto.stock_kg} kg"
+                f"La cantidad de {producto.nombre} debe ser mayor a 0"
+            )
+
+        if producto.categoria.nombre != 'Ingrediente de dieta':
+            raise ValidationError(
+                f"{producto.nombre} no es un ingrediente de dieta"
+            )
+
+        if producto.stock_kg < kg:
+            raise ValidationError(
+                f"Stock insuficiente de {producto.nombre}. "
+                f"Disponible: {producto.stock_kg} kg"
             )
 
     # =========================
-    # SALIDAS (ingredientes)
+    # 2️⃣ SALIDAS (INGREDIENTES)
     # =========================
     for d in detalles:
+        producto = d.producto
+        kg = Decimal(d.kg)
+
+        # Descontar stock
+        producto.stock_kg -= kg
+        producto.save(update_fields=['stock_kg'])
+
+        # Registrar salida
         Salida.objects.create(
-            producto=d.producto,
-            kg=d.kg,
+            producto=producto,
+            kg=kg,
             usuario=usuario,
-            tipo='VENTA',
-            cliente=cliente_interno
+            tipo='DIETA',
+            fecha_hora=timezone.now()
         )
 
     # =========================
-    # ENTRADA (producto dieta)
+    # 3️⃣ ENTRADA (DIETA TERMINADA)
     # =========================
     dieta.recalcular_total()
 
+    producto_dieta = dieta.producto_dieta
+    producto_dieta.stock_kg += dieta.total_kg
+    producto_dieta.save(update_fields=['stock_kg'])
+
     Entrada.objects.create(
-        producto=dieta.producto_dieta,
+        producto=producto_dieta,
         kg=dieta.total_kg,
         usuario=usuario,
         fecha_hora=timezone.now()
     )
-
-    # =========================
-    # MARCAR DIETA
-    # =========================
-    dieta.preparada = True
-    dieta.fecha_preparacion = timezone.now()
-    dieta.save(update_fields=['preparada', 'fecha_preparacion'])
