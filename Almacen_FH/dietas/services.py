@@ -19,13 +19,10 @@ def preparar_dieta(dieta: Dieta, usuario):
     # 1️⃣ VALIDAR STOCK
     # =========================
     for d in detalles:
-        kg = Decimal(d.kg)
-        producto = d.producto
-
-        if producto.stock_kg < kg:
+        if d.producto.stock_kg < d.kg:
             raise ValidationError(
-                f"Stock insuficiente de {producto.nombre}. "
-                f"Disponible: {producto.stock_kg} kg"
+                f"Stock insuficiente de {d.producto.nombre}. "
+                f"Disponible: {d.producto.stock_kg} kg"
             )
 
     # =========================
@@ -35,8 +32,11 @@ def preparar_dieta(dieta: Dieta, usuario):
         Salida.objects.create(
             producto=d.producto,
             kg=d.kg,
+            toneladas=0,
+            bultos=0,
+            tipo='DIETA',
             usuario=usuario,
-            tipo='DIETA'
+            fecha_hora=timezone.now()
         )
 
     # =========================
@@ -47,6 +47,8 @@ def preparar_dieta(dieta: Dieta, usuario):
     Entrada.objects.create(
         producto=dieta.producto_dieta,
         kg=dieta.total_kg,
+        toneladas=0,
+        bultos=0,
         usuario=usuario,
         fecha_hora=timezone.now()
     )
