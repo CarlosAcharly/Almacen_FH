@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+from django.utils import timezone
 
 from .models import Dieta
 from movimientos.models import Entrada, Salida
@@ -14,11 +15,17 @@ def preparar_dieta(dieta: Dieta, usuario):
         'producto__categoria'
     )
 
+    # =========================
+    # 0️⃣ VALIDACIONES BÁSICAS
+    # =========================
+    if dieta.preparada:
+        raise ValidationError("Esta dieta ya fue preparada")
+
     if not detalles.exists():
         raise ValidationError("La dieta no tiene ingredientes")
 
     # =========================
-    # 1️⃣ VALIDACIONES
+    # 1️⃣ VALIDAR INGREDIENTES
     # =========================
     for d in detalles:
         producto = d.producto
@@ -29,7 +36,6 @@ def preparar_dieta(dieta: Dieta, usuario):
                 f"La cantidad de {producto.nombre} debe ser mayor a 0"
             )
 
-        # ✅ VALIDAR INGREDIENTES
         if producto.categoria.nombre != 'Ingrediente de dieta':
             raise ValidationError(
                 f"El producto '{producto.nombre}' no es un ingrediente de dieta"
@@ -75,3 +81,10 @@ def preparar_dieta(dieta: Dieta, usuario):
         kg=dieta.total_kg,
         usuario=usuario,
     )
+
+    # =========================
+    # 5️⃣ MARCAR DIETA PREPARADA
+    # =========================
+    dieta.preparada = True
+    dieta.fecha_preparacion = timezone.now()
+    dieta.save(update_fields=['preparada', 'fecha_preparacion'])

@@ -71,7 +71,14 @@ def editar_dieta(request, dieta_id):
         eliminada=False
     )
 
-    # ✅ SOLO INGREDIENTES DE DIETA
+    # 🚫 No permitir editar si ya fue preparada
+    if dieta.preparada:
+        messages.warning(
+            request,
+            'Esta dieta ya fue preparada y no puede modificarse'
+        )
+        return redirect('lista_dietas')
+
     ingredientes = Producto.objects.filter(
         activo=True,
         categoria__nombre='Ingrediente de dieta'
@@ -82,9 +89,9 @@ def editar_dieta(request, dieta_id):
 
     if request.method == 'POST':
         for ingrediente in ingredientes:
-            kg = float(request.POST.get(
-                f'kg_{ingrediente.id}', 0
-            ) or 0)
+            kg = float(
+                request.POST.get(f'kg_{ingrediente.id}', 0) or 0
+            )
 
             if kg > 0:
                 DetalleDieta.objects.update_or_create(
@@ -99,7 +106,7 @@ def editar_dieta(request, dieta_id):
                 ).delete()
 
         dieta.recalcular_total()
-        messages.success(request, "Dieta guardada correctamente")
+        messages.success(request, 'Dieta guardada correctamente')
         return redirect('editar_dieta', dieta.id)
 
     return render(request, 'dietas/editar_dieta.html', {
@@ -107,7 +114,6 @@ def editar_dieta(request, dieta_id):
         'ingredientes': ingredientes,
         'detalles': detalles
     })
-
 
 # =========================
 # ELIMINAR DIETA (PAPELERA)
@@ -143,25 +149,13 @@ def preparar_dieta_view(request, dieta_id):
         preparar_dieta(dieta, request.user)
         messages.success(
             request,
-            f'Dieta "{dieta.nombre}" agregada al stock correctamente'
+            f'Dieta "{dieta.nombre}" preparada y agregada al stock'
         )
     except ValidationError as e:
         messages.error(request, e.message)
 
     return redirect('editar_dieta', dieta.id)
 
-# =========================
-# PAPELERA DE DIETAS
-# =========================
-@login_required
-def papelera_dietas(request):
-    dietas = Dieta.objects.filter(
-        eliminada=True
-    ).order_by('-fecha_creacion')
-
-    return render(request, 'dietas/papelera.html', {
-        'dietas': dietas
-    })
 
 
 # =========================

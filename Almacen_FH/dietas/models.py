@@ -43,6 +43,11 @@ class Dieta(models.Model):
     eliminada = models.BooleanField(default=False)
     eliminada_en = models.DateTimeField(null=True, blank=True)
 
+    # 🔹 Estado de preparación
+    preparada = models.BooleanField(default=False)
+    fecha_preparacion = models.DateTimeField(null=True, blank=True)
+
+
     # ==========================
     # MÉTODOS DE NEGOCIO
     # ==========================
