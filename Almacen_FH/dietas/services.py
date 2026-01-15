@@ -1,10 +1,10 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from decimal import Decimal
 from django.utils import timezone
 
-from movimientos.models import Entrada, Salida
+from movimientos.models import Salida, Entrada
 from .models import Dieta
+from catalogos.models import Cliente, TipoMovimiento
 
 
 @transaction.atomic
@@ -14,6 +14,9 @@ def preparar_dieta(dieta: Dieta, usuario):
 
     if not detalles.exists():
         raise ValidationError("La dieta no tiene ingredientes")
+
+    cliente_interno = Cliente.objects.get(nombre='Interno')
+    tipo_venta = TipoMovimiento.objects.get(nombre='Venta')
 
     # =========================
     # 1️⃣ VALIDAR STOCK
@@ -26,7 +29,7 @@ def preparar_dieta(dieta: Dieta, usuario):
             )
 
     # =========================
-    # 2️⃣ SALIDAS (ingredientes)
+    # 2️⃣ CREAR SALIDAS (INGREDIENTES)
     # =========================
     for d in detalles:
         Salida.objects.create(
@@ -34,13 +37,14 @@ def preparar_dieta(dieta: Dieta, usuario):
             kg=d.kg,
             toneladas=0,
             bultos=0,
-            tipo='DIETA',
+            tipo=tipo_venta,
+            cliente=cliente_interno,
             usuario=usuario,
             fecha_hora=timezone.now()
         )
 
     # =========================
-    # 3️⃣ ENTRADA (producto dieta)
+    # 3️⃣ ENTRADA (DIETA PREPARADA)
     # =========================
     dieta.recalcular_total()
 
@@ -54,7 +58,7 @@ def preparar_dieta(dieta: Dieta, usuario):
     )
 
     # =========================
-    # 4️⃣ MARCAR COMO PREPARADA
+    # 4️⃣ MARCAR DIETA
     # =========================
     dieta.preparada = True
     dieta.fecha_preparacion = timezone.now()
