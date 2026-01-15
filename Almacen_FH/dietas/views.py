@@ -10,7 +10,7 @@ from catalogos.models import Categoria, Producto
 
 
 # =========================
-# LISTA DE DIETAS (activas)
+# LISTA DE DIETAS (ACTIVAS)
 # =========================
 @login_required
 def lista_dietas(request):
@@ -32,13 +32,11 @@ def crear_dieta(request):
         form = DietaForm(request.POST)
         if form.is_valid():
 
-            # 🔹 Categoría Dietas (producto terminado)
             categoria_dietas = get_object_or_404(
                 Categoria,
                 nombre='Dietas'
             )
 
-            # 🔹 Crear producto automáticamente
             producto = Producto.objects.create(
                 nombre=form.cleaned_data['nombre'],
                 categoria=categoria_dietas,
@@ -61,7 +59,7 @@ def crear_dieta(request):
 
 
 # =========================
-# EDITAR DIETA
+# EDITAR / GUARDAR DIETA
 # =========================
 @login_required
 def editar_dieta(request, dieta_id):
@@ -70,14 +68,6 @@ def editar_dieta(request, dieta_id):
         id=dieta_id,
         eliminada=False
     )
-
-    # 🚫 No permitir editar si ya fue preparada
-    if dieta.preparada:
-        messages.warning(
-            request,
-            'Esta dieta ya fue preparada y no puede modificarse'
-        )
-        return redirect('lista_dietas')
 
     ingredientes = Producto.objects.filter(
         activo=True,
@@ -88,6 +78,14 @@ def editar_dieta(request, dieta_id):
     detalles = {d.producto.id: d.kg for d in detalles_qs}
 
     if request.method == 'POST':
+
+        if dieta.preparada:
+            messages.error(
+                request,
+                'La dieta ya fue preparada y no puede modificarse'
+            )
+            return redirect('editar_dieta', dieta.id)
+
         for ingrediente in ingredientes:
             kg = float(
                 request.POST.get(f'kg_{ingrediente.id}', 0) or 0
@@ -114,21 +112,6 @@ def editar_dieta(request, dieta_id):
         'ingredientes': ingredientes,
         'detalles': detalles
     })
-
-# =========================
-# ELIMINAR DIETA (PAPELERA)
-# =========================
-@login_required
-def eliminar_dieta(request, dieta_id):
-    dieta = get_object_or_404(Dieta, id=dieta_id, eliminada=False)
-
-    dieta.eliminar()
-    messages.warning(
-        request,
-        f'La dieta "{dieta.nombre}" fue enviada a la papelera'
-    )
-
-    return redirect('lista_dietas')
 
 
 # =========================
@@ -157,27 +140,52 @@ def preparar_dieta_view(request, dieta_id):
     return redirect('editar_dieta', dieta.id)
 
 
+# =========================
+# PAPELERA DE DIETAS
+# =========================
+@login_required
+def papelera_dietas(request):
+    dietas = Dieta.objects.filter(
+        eliminada=True
+    ).order_by('-fecha_creacion')
+
+    return render(request, 'dietas/papelera.html', {
+        'dietas': dietas
+    })
+
 
 # =========================
 # RESTAURAR DIETA
 # =========================
 @login_required
 def restaurar_dieta(request, dieta_id):
-    dieta = get_object_or_404(Dieta, id=dieta_id, activa=False)
-    dieta.activa = True
-    dieta.save(update_fields=['activa'])
+    dieta = get_object_or_404(Dieta, id=dieta_id, eliminada=True)
 
-    messages.success(request, f'Dieta "{dieta.nombre}" restaurada correctamente')
+    dieta.eliminada = False
+    dieta.activa = True
+    dieta.eliminada_en = None
+    dieta.save(update_fields=['eliminada', 'activa', 'eliminada_en'])
+
+    messages.success(
+        request,
+        f'Dieta "{dieta.nombre}" restaurada correctamente'
+    )
     return redirect('papelera_dietas')
 
+
+# =========================
+# ELIMINAR DIETA (SOFT DELETE)
+# =========================
 @login_required
 def eliminar_dieta(request, dieta_id):
     if request.method != 'POST':
         return redirect('lista_dietas')
 
     dieta = get_object_or_404(Dieta, id=dieta_id, eliminada=False)
-    dieta.eliminada = True
-    dieta.save(update_fields=['eliminada'])
+    dieta.eliminar()
 
-    messages.warning(request, 'Dieta enviada a la papelera')
+    messages.warning(
+        request,
+        f'La dieta "{dieta.nombre}" fue enviada a la papelera'
+    )
     return redirect('lista_dietas')
