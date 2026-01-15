@@ -79,13 +79,6 @@ def editar_dieta(request, dieta_id):
 
     if request.method == 'POST':
 
-        if dieta.preparada:
-            messages.error(
-                request,
-                'La dieta ya fue preparada y no puede modificarse'
-            )
-            return redirect('editar_dieta', dieta.id)
-
         for ingrediente in ingredientes:
             kg = float(
                 request.POST.get(f'kg_{ingrediente.id}', 0) or 0
@@ -135,10 +128,9 @@ def preparar_dieta_view(request, dieta_id):
             f'Dieta "{dieta.nombre}" preparada correctamente'
         )
     except ValidationError as e:
-        messages.error(request, str(e))
+        messages.error(request, e.message)
 
     return redirect('lista_dietas')
-
 
 
 # =========================
@@ -160,12 +152,16 @@ def papelera_dietas(request):
 # =========================
 @login_required
 def restaurar_dieta(request, dieta_id):
-    dieta = get_object_or_404(Dieta, id=dieta_id, eliminada=True)
+    if request.method != 'POST':
+        return redirect('papelera_dietas')
 
-    dieta.eliminada = False
-    dieta.activa = True
-    dieta.eliminada_en = None
-    dieta.save(update_fields=['eliminada', 'activa', 'eliminada_en'])
+    dieta = get_object_or_404(
+        Dieta,
+        id=dieta_id,
+        eliminada=True
+    )
+
+    dieta.restaurar()
 
     messages.success(
         request,
@@ -182,7 +178,12 @@ def eliminar_dieta(request, dieta_id):
     if request.method != 'POST':
         return redirect('lista_dietas')
 
-    dieta = get_object_or_404(Dieta, id=dieta_id, eliminada=False)
+    dieta = get_object_or_404(
+        Dieta,
+        id=dieta_id,
+        eliminada=False
+    )
+
     dieta.eliminar()
 
     messages.warning(

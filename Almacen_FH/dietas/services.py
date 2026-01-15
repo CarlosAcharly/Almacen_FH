@@ -3,12 +3,18 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import Dieta
 from movimientos.models import Entrada, Salida
+from .models import Dieta
 
 
 @transaction.atomic
 def preparar_dieta(dieta: Dieta, usuario):
+    """
+    Prepara una dieta:
+    - Descuenta ingredientes (SALIDA)
+    - Aumenta stock del producto dieta (ENTRADA)
+    - Puede ejecutarse múltiples veces
+    """
 
     detalles = dieta.detalles.select_related(
         'producto',
@@ -42,24 +48,27 @@ def preparar_dieta(dieta: Dieta, usuario):
             )
 
     # =========================
-    # 2️⃣ DESCONTAR INGREDIENTES
+    # 2️⃣ SALIDAS (INGREDIENTES)
     # =========================
     for d in detalles:
         producto = d.producto
         kg = Decimal(d.kg)
 
+        # Descontar stock
         producto.stock_kg -= kg
         producto.save(update_fields=['stock_kg'])
 
+        # Registrar salida
         Salida.objects.create(
             producto=producto,
             kg=kg,
             usuario=usuario,
-            tipo='DIETA'
+            tipo='DIETA',
+            fecha_hora=timezone.now()
         )
 
     # =========================
-    # 3️⃣ AUMENTAR STOCK DIETA
+    # 3️⃣ ENTRADA (DIETA TERMINADA)
     # =========================
     dieta.recalcular_total()
 
@@ -67,12 +76,9 @@ def preparar_dieta(dieta: Dieta, usuario):
     producto_dieta.stock_kg += dieta.total_kg
     producto_dieta.save(update_fields=['stock_kg'])
 
-    # =========================
-    # 4️⃣ REGISTRAR ENTRADA
-    # =========================
     Entrada.objects.create(
         producto=producto_dieta,
         kg=dieta.total_kg,
         usuario=usuario,
-        fecha=timezone.now()
+        fecha_hora=timezone.now()
     )

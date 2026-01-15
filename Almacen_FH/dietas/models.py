@@ -21,7 +21,7 @@ class Dieta(models.Model):
         choices=EtapaCerdo.choices
     )
 
-    # Producto que representa la dieta (ej. "Dieta Cerdo Engorda")
+    # Producto terminado que representa la dieta
     producto_dieta = models.OneToOneField(
         Producto,
         on_delete=models.PROTECT,
@@ -36,17 +36,12 @@ class Dieta(models.Model):
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
-    # 🔹 Estado operativo
+    # Estado
     activa = models.BooleanField(default=True)
 
     # 🗑️ PAPELERA (soft delete)
     eliminada = models.BooleanField(default=False)
     eliminada_en = models.DateTimeField(null=True, blank=True)
-
-    # 🔹 Estado de preparación
-    preparada = models.BooleanField(default=False)
-    fecha_preparacion = models.DateTimeField(null=True, blank=True)
-
 
     # ==========================
     # MÉTODOS DE NEGOCIO
@@ -76,6 +71,7 @@ class Dieta(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.get_etapa_display()})"
+
 
 class DetalleDieta(models.Model):
     dieta = models.ForeignKey(
