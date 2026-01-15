@@ -1,156 +1,684 @@
-{% extends "layout/base.html" %}
+<!-- reportes/templates/reportes/dashboard.html -->
+{% extends 'layout/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Sistema de Gestión{% endblock %}
+
 {% block content %}
-
-<div class="container-fluid mt-4">
-
-  <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold">
-      <i class="bi bi-speedometer2"></i> Panel de Control
-    </h3>
-
-    <form method="get" class="d-flex gap-2">
-      <select name="periodo" class="form-select" onchange="this.form.submit()">
-        <option value="diario" {% if periodo == 'diario' %}selected{% endif %}>Diario</option>
-        <option value="semanal" {% if periodo == 'semanal' %}selected{% endif %}>Semanal</option>
-        <option value="mensual" {% if periodo == 'mensual' %}selected{% endif %}>Mensual</option>
-        <option value="anual" {% if periodo == 'anual' %}selected{% endif %}>Anual</option>
-      </select>
-    </form>
-  </div>
-
-  <!-- 🚨 ALERTAS VISUALES -->
-  {% if productos_criticos or productos_bajo_stock %}
-  <div class="row mb-4">
-
-    {% if productos_criticos %}
-    <div class="col-md-6">
-      <div class="alert alert-danger shadow-sm">
-        <h6 class="fw-bold mb-2">🔥 Productos agotados</h6>
-        <ul class="mb-0">
-          {% for p in productos_criticos %}
-            <li>{{ p.nombre }} — <strong>0 kg</strong></li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if productos_bajo_stock %}
-    <div class="col-md-6">
-      <div class="alert alert-warning shadow-sm">
-        <h6 class="fw-bold mb-2">⚠️ Stock bajo</h6>
-        <ul class="mb-0">
-          {% for p in productos_bajo_stock %}
-            <li>
-              {{ p.nombre }} — {{ p.stock_kg }} kg
-              (mín: {{ p.stock_minimo_kg }} kg)
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-    {% endif %}
-
-  </div>
-  {% endif %}
-
-  <!-- KPI CARDS -->
-  <div class="row g-3 mb-4">
-
-    <div class="col-md-6 col-xl-3">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h6 class="text-muted">Entradas Totales</h6>
-          <h3 class="fw-bold text-success">{{ total_entradas }} kg</h3>
+<div class="container-fluid py-4">
+    <!-- Título y filtros -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard
+            <small class="text-muted ms-2">{{ mes_actual }}</small>
+        </h1>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary btn-sm" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+            <span class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-calendar me-1"></i> {{ hoy_es }}
+            </span>
         </div>
-      </div>
     </div>
 
-    <div class="col-md-6 col-xl-3">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h6 class="text-muted">Salidas Totales</h6>
-          <h3 class="fw-bold text-danger">{{ total_salidas }} kg</h3>
+    <!-- Cards de Resumen -->
+    <div class="row mb-4">
+        <!-- Productos Activos -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Productos Activos
+                            </div>
+                            <div class="h2 mb-0 font-weight-bold text-gray-800">
+                                {{ total_productos }}
+                            </div>
+                            <div class="mt-2">
+                                {% if productos_bajo_stock > 0 %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    {{ productos_bajo_stock }} con stock bajo
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Stock normal
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-primary opacity-75">
+                            <i class="fas fa-boxes fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <div class="col-md-6 col-xl-3">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h6 class="text-muted">Productos</h6>
-          <h3 class="fw-bold text-primary">{{ productos.count }}</h3>
+        <!-- Entradas del Mes -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Entradas ({{ mes_actual_nombre }})
+                            </div>
+                            <div class="h2 mb-0 font-weight-bold text-gray-800">
+                                {{ entradas_mes }}
+                            </div>
+                            <div class="text-muted small mt-1">kilogramos</div>
+                            <div class="mt-2 text-muted small">
+                                <i class="fas fa-calendar me-1"></i> Desde el {{ inicio_mes_es }}
+                            </div>
+                        </div>
+                        <div class="text-success opacity-75">
+                            <i class="fas fa-arrow-down fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <div class="col-md-6 col-xl-3">
-      <div class="card shadow-sm border-0 {% if balance < 0 %}bg-danger text-white{% else %}bg-light{% endif %}">
-        <div class="card-body">
-          <h6 class="text-muted">Balance</h6>
-          <h3 class="fw-bold">
-            {{ balance }} kg
-          </h3>
+        <!-- Salidas del Mes -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Salidas ({{ mes_actual_nombre }})
+                            </div>
+                            <div class="h2 mb-0 font-weight-bold text-gray-800">
+                                {{ salidas_mes }}
+                            </div>
+                            <div class="text-muted small mt-1">kilogramos</div>
+                            <div class="mt-2">
+                                <span class="badge bg-info text-white">
+                                    <i class="fas fa-chart-line me-1"></i>
+                                    Rotación: {{ rotacion_inventario }}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-info opacity-75">
+                            <i class="fas fa-arrow-up fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <!-- Dietas Activas -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Dietas
+                            </div>
+                            <div class="h2 mb-0 font-weight-bold text-gray-800">
+                                {{ dietas_activas }}
+                            </div>
+                            <div class="text-muted small mt-1">activas</div>
+                            <div class="mt-2">
+                                <span class="badge bg-warning text-white">
+                                    <i class="fas fa-blender me-1"></i>
+                                    {{ preparaciones_mes }} prep. este mes
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-warning opacity-75">
+                            <i class="fas fa-utensils fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-  </div>
+    <!-- Últimos Movimientos -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-exchange-alt me-2"></i>Últimos Movimientos
+                        <span class="badge bg-primary ms-2">{{ ultimos_movimientos|length }}</span>
+                    </h6>
+                    <a href="{% url 'lista_salidas' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> Ver todos
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Fecha/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Cliente/Lugar</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mov in ultimos_movimientos %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <small>{{ mov.fecha_hora|date:"d/m H:i" }}</small>
+                                        {% if mov.folio %}
+                                        <br>
+                                        <small class="text-muted">#{{ mov.folio }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if mov.tipo == 'VENTA' %}
+                                            <span class="badge bg-success">Venta</span>
+                                        {% elif mov.tipo == 'ENTRADA' %}
+                                            <span class="badge bg-primary">Entrada</span>
+                                        {% elif mov.tipo == 'DIETA' %}
+                                            <span class="badge bg-warning">Dieta</span>
+                                        {% elif mov.tipo == 'TRASLADO' %}
+                                            <span class="badge bg-info">Traslado</span>
+                                        {% elif mov.tipo == 'PEDIDO' %}
+                                            <span class="badge bg-secondary">Pedido</span>
+                                        {% else %}
+                                            <span class="badge bg-dark">{{ mov.tipo }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if mov.cliente %}
+                                            <strong>{{ mov.cliente.nombre }}</strong>
+                                            {% if mov.cliente.telefono %}
+                                                <br>
+                                                <small class="text-muted">{{ mov.cliente.telefono }}</small>
+                                            {% endif %}
+                                        {% elif mov.lugar %}
+                                            <strong>{{ mov.lugar.nombre }}</strong>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% for detalle in mov.detalles.all|slice:":1" %}
+                                            <span class="badge bg-light text-dark border">
+                                                {{ detalle.kg|floatformat:2 }} kg
+                                            </span>
+                                        {% empty %}
+                                            <span class="text-muted">0 kg</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ mov.usuario.username|truncatechars:12 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-3 opacity-50"></i>
+                                        <p class="mb-0">No hay movimientos recientes</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-  <!-- TABLA DE PRODUCTOS -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white fw-bold">
-      <i class="bi bi-box-seam"></i> Stock por Producto
+        <!-- Preparaciones Recientes de Dietas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-blender me-2"></i>Preparaciones Recientes
+                    </h6>
+                    <a href="{% url 'lista_dietas' %}" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-utensils me-1"></i> Ver
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for prep in dietas_recientes %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1 text-success">{{ prep.dieta.nombre }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>{{ prep.usuario.username }}
+                                    </small>
+                                </div>
+                                <span class="badge bg-success rounded-pill">
+                                    {{ prep.cantidad_producida|floatformat:2 }}kg
+                                </span>
+                            </div>
+                            <div class="small">
+                                <i class="fas fa-clock me-1 text-muted"></i>
+                                {{ prep.fecha_hora|date:"d/m H:i" }}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item text-center text-muted py-4">
+                            <i class="fas fa-utensils fa-2x mb-3 opacity-50"></i>
+                            <p class="mb-0">No hay preparaciones recientes</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card-body p-0">
-      <table class="table table-hover mb-0 align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Producto</th>
-            <th class="text-end">Stock (kg)</th>
-            <th class="text-center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in productos %}
-          <tr class="{% if p.stock_kg == 0 %}table-danger{% elif p.stock_kg <= p.stock_minimo_kg %}table-warning{% endif %}">
-            <td>{{ p.nombre }}</td>
-            <td class="text-end">{{ p.stock_kg }}</td>
-            <td class="text-center">
-              {% if p.stock_kg == 0 %}
-                <span class="badge bg-danger px-3">🔥 Agotado</span>
-              {% elif p.stock_kg <= p.stock_minimo_kg %}
-                <span class="badge bg-warning text-dark px-3">⚠️ Bajo</span>
-              {% else %}
-                <span class="badge bg-success px-3">✔ Normal</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="3" class="text-center text-muted py-3">
-              No hay productos registrados
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- Segunda Fila -->
+    <div class="row mb-4">
+        <!-- Productos Más Vendidos -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-chart-bar me-2"></i>Productos Más Vendidos
+                        <small class="text-muted ms-2">(Últimos 30 días)</small>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if productos_mas_vendidos %}
+                    <div class="chart-container" style="position: relative; height: 200px;">
+                        <canvas id="productosVendidosChart"></canvas>
+                    </div>
+                    <div class="mt-4">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Producto</th>
+                                        <th class="text-end">Vendido</th>
+                                        <th class="text-end">Stock Actual</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for producto in productos_mas_vendidos %}
+                                    <tr>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">{{ forloop.counter }}</span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ producto.nombre }}</strong>
+                                            {% if producto.categoria %}
+                                            <br>
+                                            <small class="text-muted">{{ producto.categoria.nombre }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="fw-bold text-info">
+                                                {{ producto.total_vendido|default:0|floatformat:2 }} kg
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if producto.stock_kg < 50 %}
+                                                <span class="badge bg-danger">
+                                                    {{ producto.stock_kg|floatformat:2 }} kg
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success">
+                                                    {{ producto.stock_kg|floatformat:2 }} kg
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-bar fa-3x mb-3 opacity-50"></i>
+                        <p>No hay datos de ventas en los últimos 30 días</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Clientes Frecuentes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-users me-2"></i>Clientes Frecuentes
+                        <small class="text-muted ms-2">(Últimos 30 días)</small>
+                    </h6>
+                    <a href="{% url 'lista_clientes' %}" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-address-book me-1"></i> Ver todos
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if clientes_frecuentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Cliente</th>
+                                    <th>Contacto</th>
+                                    <th class="text-center">Compras</th>
+                                    <th class="text-end pe-3">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cliente in clientes_frecuentes %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="avatar-circle bg-warning bg-opacity-10 text-warning">
+                                                    {{ cliente.nombre|first|upper }}
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <strong>{{ cliente.nombre }}</strong>
+                                                {% if cliente.ultima_compra %}
+                                                <div class="text-muted small">
+                                                    Última: {{ cliente.ultima_compra|date:"d/m" }}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ cliente.telefono }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning rounded-pill fs-6 px-3">
+                                            {{ cliente.total_movimientos }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <div class="fw-bold text-warning">
+                                            {{ cliente.total_kg|floatformat:2 }} kg
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                        <p>No hay datos de clientes en los últimos 30 días</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- ACCIONES -->
-  <div class="d-flex gap-2">
-    <a href="{% url 'pdf_entradas' %}" class="btn btn-outline-success">
-      <i class="bi bi-file-earmark-pdf"></i> Entradas PDF
-    </a>
+    <!-- Tercera Fila -->
+    <div class="row">
+        <!-- Mermas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow border-danger h-100">
+                <div class="card-header bg-danger text-white py-3">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Mermas de {{ mes_actual_nombre }}
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-4 text-danger fw-bold mb-3">
+                        {{ mermas_mes }} <small class="fs-6">kg</small>
+                    </div>
+                    
+                    {% if entradas_mes > 0 %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Porcentaje de pérdidas</span>
+                            <span class="fw-bold text-danger">
+                                {% widthratio mermas_mes entradas_mes 100 %}%
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {% widthratio mermas_mes entradas_mes 100 %}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'lista_mermas' %}" class="btn btn-outline-danger">
+                            <i class="fas fa-chart-pie me-2"></i>Ver Reporte
+                        </a>
+                        <a href="{% url 'crear_merma' %}" class="btn btn-danger">
+                            <i class="fas fa-plus me-2"></i>Registrar Merma
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <a href="{% url 'pdf_salidas' %}" class="btn btn-outline-danger">
-      <i class="bi bi-file-earmark-pdf"></i> Salidas PDF
-    </a>
-  </div>
+        <!-- Top Entradas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow border-primary h-100">
+                <div class="card-header bg-primary text-white py-3">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-arrow-down me-2"></i>Top Entradas de {{ mes_actual_nombre }}
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for producto in productos_con_mas_entradas %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ producto.nombre }}</h6>
+                                    {% if producto.categoria %}
+                                    <small class="text-muted">{{ producto.categoria.nombre }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary rounded-pill">
+                                        {{ producto.total_entradas|default:0|floatformat:2 }} kg
+                                    </span>
+                                    <div class="small text-muted mt-1">
+                                        Stock: {{ producto.stock_kg|floatformat:2 }} kg
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item text-center text-muted py-4">
+                            <i class="fas fa-box-open fa-2x mb-2 opacity-50"></i>
+                            <p>No hay entradas este mes</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Indicadores -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow border-success h-100">
+                <div class="card-header bg-success text-white py-3">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-chart-line me-2"></i>Indicadores de {{ mes_actual_nombre }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-4">
+                            <div class="h4 mb-0 text-success">{{ dietas_activas }}</div>
+                            <small class="text-muted">Dietas Activas</small>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="h4 mb-0 text-primary">{{ total_preparaciones }}</div>
+                            <small class="text-muted">Total Prep.</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 mb-0 text-info">{{ clientes_frecuentes|length }}</div>
+                            <small class="text-muted">Clientes Activos</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 mb-0 text-warning">{{ productos_bajo_stock }}</div>
+                            <small class="text-muted">Stock Bajo</small>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="small text-muted mb-2">Resumen del mes</div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Entradas:</span>
+                            <span class="fw-bold text-success">{{ entradas_mes }} kg</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Salidas:</span>
+                            <span class="fw-bold text-info">{{ salidas_mes }} kg</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Mermas:</span>
+                            <span class="fw-bold text-danger">{{ mermas_mes }} kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Crear gráfico de productos vendidos si hay datos
+        const productosVendidosData = [
+            {% for producto in productos_mas_vendidos %}
+                {{ producto.total_vendido|default:0 }},
+            {% endfor %}
+        ];
+        
+        if (productosVendidosData.length > 0 && productosVendidosData.some(value => value > 0)) {
+            const ctx = document.getElementById('productosVendidosChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        {% for producto in productos_mas_vendidos %}
+                            '{{ producto.nombre|truncatechars:15 }}',
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        label: 'Kg Vendidos',
+                        data: productosVendidosData,
+                        backgroundColor: 'rgba(54, 185, 204, 0.8)',
+                        borderColor: 'rgb(54, 185, 204)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' kg';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Actualizar automáticamente cada 5 minutos
+        setTimeout(function() {
+            window.location.reload();
+        }, 300000);
+    });
+</script>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.card {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.btn-group .btn {
+    border-radius: 6px;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 1rem;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+.border-left-primary {
+    border-left: 4px solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+</style>
 {% endblock %}
