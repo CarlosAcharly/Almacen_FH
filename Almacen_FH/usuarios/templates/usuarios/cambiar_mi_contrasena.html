@@ -1,0 +1,79 @@
+<!-- usuarios/templates/usuarios/cambiar_mi_contrasena.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-xl-5">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-key me-2"></i>{{ titulo }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.nueva_contrasena.id_for_label }}" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Nueva Contraseña
+                            </label>
+                            {{ form.nueva_contrasena }}
+                            {% if form.nueva_contrasena.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.nueva_contrasena.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.confirmar_contrasena.id_for_label }}" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Confirmar Nueva Contraseña
+                            </label>
+                            {{ form.confirmar_contrasena }}
+                            {% if form.confirmar_contrasena.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.confirmar_contrasena.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>Recomendaciones
+                            </h6>
+                            <ul class="mb-0">
+                                <li>Usa al menos 8 caracteres</li>
+                                <li>Combina letras, números y símbolos</li>
+                                <li>Evita usar información personal</li>
+                                <li>No compartas tu contraseña con nadie</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'perfil_usuario' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-1"></i> Cambiar Contraseña
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

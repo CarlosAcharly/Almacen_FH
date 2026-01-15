@@ -1,0 +1,186 @@
+<!-- usuarios/templates/usuarios/formulario.html -->
+{% extends 'layout/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>{{ titulo }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <!-- Username y Email -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Nombre de usuario *
+                                </label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.username.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i>Correo electrónico *
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.email.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Nombres y Apellidos -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-id-card me-1"></i>Nombres
+                                </label>
+                                {{ form.first_name }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-id-card me-1"></i>Apellidos
+                                </label>
+                                {{ form.last_name }}
+                            </div>
+                            
+                            <!-- Contraseñas (solo para crear) -->
+                            {% if modo == 'crear' %}
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.password1.id_for_label }}" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Contraseña *
+                                </label>
+                                {{ form.password1 }}
+                                {% if form.password1.help_text %}
+                                <small class="form-text text-muted">{{ form.password1.help_text }}</small>
+                                {% endif %}
+                                {% if form.password1.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.password1.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.password2.id_for_label }}" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Confirmar contraseña *
+                                </label>
+                                {{ form.password2 }}
+                                {% if form.password2.help_text %}
+                                <small class="form-text text-muted">{{ form.password2.help_text }}</small>
+                                {% endif %}
+                                {% if form.password2.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.password2.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Teléfono y Rol -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.telefono.id_for_label }}" class="form-label">
+                                    <i class="fas fa-phone me-1"></i>Teléfono
+                                </label>
+                                {{ form.telefono }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.rol.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user-tag me-1"></i>Rol *
+                                </label>
+                                {{ form.rol }}
+                            </div>
+                            
+                            <!-- Observaciones -->
+                            <div class="col-12 mb-4">
+                                <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                    <i class="fas fa-sticky-note me-1"></i>Observaciones
+                                </label>
+                                {{ form.observaciones }}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> 
+                                {% if modo == 'crear' %}Crear Usuario{% else %}Guardar Cambios{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Notas importantes -->
+            <div class="alert alert-info mt-4">
+                <h6 class="alert-heading">
+                    <i class="fas fa-info-circle me-2"></i>Información importante
+                </h6>
+                <ul class="mb-0">
+                    <li>Los campos marcados con * son obligatorios</li>
+                    <li>La contraseña debe tener al menos 8 caracteres</li>
+                    <li>Se recomienda usar una contraseña segura con letras, números y símbolos</li>
+                    <li>Las credenciales serán mostradas después de crear el usuario</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generar contraseña aleatoria si se hace clic en el botón
+    const generarBtn = document.getElementById('generarPassword');
+    const password1 = document.getElementById('id_password1');
+    const password2 = document.getElementById('id_password2');
+    
+    if (generarBtn && password1 && password2) {
+        generarBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Generar contraseña aleatoria de 12 caracteres
+            const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            
+            for (let i = 0; i < 12; i++) {
+                password += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            
+            password1.value = password;
+            password2.value = password;
+            
+            // Mostrar mensaje
+            alert('Contraseña generada: ' + password + '\n\nRecuerda copiarla antes de continuar.');
+        });
+    }
+});
+</script>
+{% endblock %}

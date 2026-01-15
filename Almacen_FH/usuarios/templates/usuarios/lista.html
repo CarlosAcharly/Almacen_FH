@@ -1,0 +1,434 @@
+<!-- usuarios/templates/usuarios/lista.html -->
+{% extends 'layout/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-users text-primary me-2"></i>Gestión de Usuarios
+            </h1>
+            <p class="text-muted mb-0">Administra los usuarios del sistema</p>
+        </div>
+        <div>
+            <a href="{% url 'crear_usuario' %}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Nuevo Usuario
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Usuarios
+                            </div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ total_usuarios }}</div>
+                        </div>
+                        <div class="text-primary opacity-75">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Activos
+                            </div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ total_activos }}</div>
+                        </div>
+                        <div class="text-success opacity-75">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Administradores
+                            </div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ total_administradores }}</div>
+                        </div>
+                        <div class="text-warning opacity-75">
+                            <i class="fas fa-user-shield fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Almacenistas
+                            </div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ total_almacenistas }}</div>
+                        </div>
+                        <div class="text-info opacity-75">
+                            <i class="fas fa-user-tie fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>Filtros
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="q" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="q" name="q" 
+                           value="{{ q }}" placeholder="Nombre, usuario o email">
+                </div>
+                <div class="col-md-3">
+                    <label for="rol" class="form-label">Rol</label>
+                    <select class="form-control" id="rol" name="rol">
+                        <option value="">Todos los roles</option>
+                        {% for rol_value, rol_label in roles %}
+                        <option value="{{ rol_value }}" {% if rol_filter == rol_value %}selected{% endif %}>
+                            {{ rol_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select class="form-control" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for estado_value, estado_label in estados %}
+                        <option value="{{ estado_value }}" {% if estado_filter == estado_value %}selected{% endif %}>
+                            {{ estado_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Lista de Usuarios
+            </h6>
+            <span class="badge bg-primary">{{ page_obj.paginator.count }} usuarios</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Usuario</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Último acceso</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in page_obj %}
+                        <tr>
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="avatar-circle 
+                                            {% if usuario.es_administrador or usuario.is_superuser %}bg-warning{% else %}bg-info{% endif %} 
+                                            bg-opacity-10 
+                                            {% if usuario.es_administrador or usuario.is_superuser %}text-warning{% else %}text-info{% endif %}">
+                                            {{ usuario.username|first|upper }}
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <strong>{{ usuario.username }}</strong>
+                                        <div class="text-muted small">
+                                            Creado: {{ usuario.date_joined|date:"d/m/Y" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {{ usuario.first_name }} {{ usuario.last_name }}
+                                {% if usuario.telefono %}
+                                <div class="text-muted small">
+                                    {{ usuario.telefono }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="mailto:{{ usuario.email }}" class="text-primary">
+                                    {{ usuario.email }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if usuario.is_superuser %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-crown me-1"></i>
+                                    Superadministrador
+                                </span>
+                                {% elif usuario.es_administrador %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-user-shield me-1"></i>
+                                    {{ usuario.get_rol_display|default:"Administrador" }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-user-tie me-1"></i>
+                                    {{ usuario.get_rol_display|default:"Almacenista" }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if usuario.estado == 'ACTIVO' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    {{ usuario.get_estado_display|default:"Activo" }}
+                                </span>
+                                {% elif usuario.estado == 'INACTIVO' %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-times-circle me-1"></i>
+                                    {{ usuario.get_estado_display|default:"Inactivo" }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-ban me-1"></i>
+                                    {{ usuario.get_estado_display|default:"Suspendido" }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if usuario.last_login %}
+                                <div class="text-muted small">
+                                    {{ usuario.last_login|date:"d/m/Y H:i" }}
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Nunca</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'editar_usuario' usuario.id %}" 
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="Editar usuario">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'cambiar_contrasena' usuario.id %}" 
+                                       class="btn btn-sm btn-outline-warning"
+                                       title="Cambiar contraseña">
+                                        <i class="fas fa-key"></i>
+                                    </a>
+                                    
+                                    <!-- Botón Activar/Desactivar -->
+                                    <form method="post" 
+                                          action="{% url 'cambiar_estado_usuario' usuario.id %}"
+                                          class="d-inline"
+                                          onsubmit="return confirm('¿{% if usuario.estado == 'ACTIVO' %}Desactivar{% else %}Activar{% endif %} este usuario?');">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-sm {% if usuario.estado == 'ACTIVO' %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                                title="{% if usuario.estado == 'ACTIVO' %}Desactivar{% else %}Activar{% endif %} usuario">
+                                            <i class="fas {% if usuario.estado == 'ACTIVO' %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    
+                                    <!-- Botón Eliminar -->
+                                    {% if usuario != request.user %}
+                                    <form method="post" 
+                                          action="{% url 'eliminar_usuario' usuario.id %}"
+                                          class="d-inline"
+                                          onsubmit="return confirm('¿Estás seguro de eliminar a {{ usuario.username }}? Esta acción no se puede deshacer.');">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-danger"
+                                                title="Eliminar usuario">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                                <p class="mb-0">No hay usuarios registrados</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer py-3">
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="text-center text-muted small mt-2">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </div>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+.card {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.pagination .page-link {
+    border-radius: 5px;
+    margin: 0 2px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirmación antes de cambiar estado
+    const estadoForms = document.querySelectorAll('form[action*="cambiar-estado"]');
+    estadoForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const usuario = this.closest('tr').querySelector('strong').textContent;
+            const estadoActual = this.querySelector('button').title.includes('Desactivar') ? 'activo' : 'inactivo';
+            const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
+            
+            if (!confirm(`¿Estás seguro de cambiar el estado de "${usuario}" de ${estadoActual} a ${nuevoEstado}?`)) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Confirmación antes de eliminar
+    const eliminarForms = document.querySelectorAll('form[action*="eliminar"]');
+    eliminarForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const usuario = this.closest('tr').querySelector('strong').textContent;
+            
+            if (!confirm(`¿Estás completamente seguro de eliminar al usuario "${usuario}"?\n\nEsta acción NO se puede deshacer y todos los datos relacionados se perderán.`)) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Tooltips para botones
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

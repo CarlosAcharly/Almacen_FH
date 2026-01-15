@@ -10,6 +10,9 @@
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
+    <!-- Font Awesome para más iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     {% load static %}
 
     <style>
@@ -235,6 +238,52 @@
         8px 8px 18px rgba(0,0,0,0.12),
         -8px -8px 18px rgba(255,255,255,0.6);
 }
+
+        /* Estilo especial para sección de administración */
+        .admin-section {
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 10px;
+        }
+
+        .admin-section .sidebar-section {
+            color: #ffa726;
+        }
+
+        .admin-section .nav-link {
+            background: linear-gradient(145deg, #2a1e31, #32223a);
+        }
+
+        .admin-section .nav-link:hover {
+            background: rgba(255, 167, 38, 0.15);
+        }
+
+        .admin-section .nav-link.active {
+            background: rgba(255, 167, 38, 0.25);
+        }
+
+        /* Indicador de rol en navbar */
+        .user-role-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(255, 167, 38, 0.15);
+            color: #ffa726;
+            border: 1px solid rgba(255, 167, 38, 0.3);
+        }
+        
+        /* Estilo especial para superadministrador */
+        .superadmin-badge {
+            background: rgba(220, 53, 69, 0.15) !important;
+            color: #dc3545 !important;
+            border: 1px solid rgba(220, 53, 69, 0.3) !important;
+        }
+        
+        .almacenista-badge {
+            background: rgba(33, 150, 243, 0.15) !important;
+            color: #2196f3 !important;
+            border: 1px solid rgba(33, 150, 243, 0.3) !important;
+        }
     </style>
 </head>
 
@@ -358,6 +407,28 @@
                 </a>
             </li>
 
+            <!-- SECCIÓN DE ADMINISTRACIÓN (Solo para administradores O superusuarios) -->
+            {% if user.es_administrador or user.is_superuser %}
+            <div class="admin-section mt-auto">
+                <div class="sidebar-section">ADMINISTRACIÓN</div>
+
+                <li class="nav-item">
+                    <a class="nav-link {% if current in 'lista_usuarios crear_usuario editar_usuario credenciales_usuario' %}active{% endif %}"
+                       href="{% url 'lista_usuarios' %}">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Gestión de Usuarios</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {% if current in 'crear_usuario' %}active{% endif %}"
+                       href="{% url 'crear_usuario' %}">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Crear Nuevo Usuario</span>
+                    </a>
+                </li>
+            </div>
+            {% endif %}
             
         </ul>
     </aside>
@@ -371,16 +442,37 @@
             <i class="bi bi-list"></i>
         </button>
         <span class="fw-semibold">
-            Bienvenido {{ request.user.username }}
+            <i class="fas fa-user me-1"></i> {{ request.user.username }}
+            {% if user.is_superuser %}
+                <span class="user-role-badge superadmin-badge ms-2">
+                    <i class="fas fa-crown me-1"></i>Superadministrador
+                </span>
+            {% elif user.es_administrador %}
+                <span class="user-role-badge ms-2">
+                    <i class="fas fa-user-shield me-1"></i>Administrador
+                </span>
+            {% elif user.es_almacenista %}
+                <span class="user-role-badge almacenista-badge ms-2">
+                    <i class="fas fa-user-tie me-1"></i>Almacenista
+                </span>
+            {% endif %}
         </span>
     </div>
 
-    <form method="post" action="{% url 'logout' %}" class="m-0">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-outline-danger btn-sm">
-        <i class="bi bi-box-arrow-right"></i> Salir
-    </button>
-</form>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Enlace a perfil -->
+        <a href="{% url 'perfil_usuario' %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-user-circle me-1"></i> Mi Perfil
+        </a>
+        
+        <!-- Botón de salida -->
+        <form method="post" action="{% url 'logout' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-box-arrow-right"></i> Salir
+            </button>
+        </form>
+    </div>
 </nav>
 
         <main class="content">
