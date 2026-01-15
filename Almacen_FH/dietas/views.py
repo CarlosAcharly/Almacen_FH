@@ -120,7 +120,7 @@ def editar_dieta(request, dieta_id):
 @login_required
 def preparar_dieta_view(request, dieta_id):
     if request.method != 'POST':
-        return redirect('editar_dieta', dieta_id)
+        return redirect('lista_dietas')
 
     dieta = get_object_or_404(
         Dieta,
@@ -132,12 +132,13 @@ def preparar_dieta_view(request, dieta_id):
         preparar_dieta(dieta, request.user)
         messages.success(
             request,
-            f'Dieta "{dieta.nombre}" preparada y agregada al stock'
+            f'Dieta "{dieta.nombre}" preparada correctamente'
         )
     except ValidationError as e:
-        messages.error(request, e.message)
+        messages.error(request, str(e))
 
-    return redirect('editar_dieta', dieta.id)
+    return redirect('lista_dietas')
+
 
 
 # =========================
