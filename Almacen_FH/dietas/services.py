@@ -1,90 +1,35 @@
 from django.db import transaction
-from django.core.exceptions import ValidationError
-from decimal import Decimal
-from django.utils import timezone
-
-from .models import Dieta
-from movimientos.models import Entrada, Salida
-
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
 
 @transaction.atomic
-def preparar_dieta(dieta: Dieta, usuario):
+def preparar_dieta(request, dieta_id):
+    dieta = get_object_or_404(Dieta, id=dieta_id)
 
-    detalles = dieta.detalles.select_related(
-        'producto',
-        'producto__categoria'
-    )
-
-    # =========================
-    # 0️⃣ VALIDACIONES BÁSICAS
-    # =========================
-    if dieta.preparada:
-        raise ValidationError("Esta dieta ya fue preparada")
+    detalles = dieta.detalles.select_related('ingrediente')
 
     if not detalles.exists():
-        raise ValidationError("La dieta no tiene ingredientes")
+        messages.error(request, "La dieta no tiene ingredientes.")
+        return redirect('lista_dietas')
 
-    # =========================
-    # 1️⃣ VALIDAR INGREDIENTES
-    # =========================
+    # VALIDAR STOCK
     for d in detalles:
-        producto = d.producto
-        kg = Decimal(d.kg)
-
-        if kg <= 0:
-            raise ValidationError(
-                f"La cantidad de {producto.nombre} debe ser mayor a 0"
+        if d.ingrediente.stock_kg < d.kg:
+            messages.error(
+                request,
+                f"Stock insuficiente de {d.ingrediente.nombre}"
             )
+            return redirect('lista_dietas')
 
-        if producto.categoria.nombre != 'Ingrediente de dieta':
-            raise ValidationError(
-                f"El producto '{producto.nombre}' no es un ingrediente de dieta"
-            )
-
-        if producto.stock_kg < kg:
-            raise ValidationError(
-                f"Stock insuficiente de {producto.nombre}. "
-                f"Disponible: {producto.stock_kg} kg"
-            )
-
-    # =========================
-    # 2️⃣ DESCONTAR INGREDIENTES
-    # =========================
+    # DESCONTAR STOCK
     for d in detalles:
-        producto = d.producto
-        kg = Decimal(d.kg)
+        ingrediente = d.ingrediente
+        ingrediente.stock_kg -= d.kg
+        ingrediente.save()
 
-        producto.stock_kg -= kg
-        producto.save(update_fields=['stock_kg'])
-
-        Salida.objects.create(
-            producto=producto,
-            kg=kg,
-            usuario=usuario,
-            tipo='DIETA'
-        )
-
-    # =========================
-    # 3️⃣ AUMENTAR STOCK DIETA
-    # =========================
-    dieta.recalcular_total()
-
-    producto_dieta = dieta.producto_dieta
-    producto_dieta.stock_kg += dieta.total_kg
-    producto_dieta.save(update_fields=['stock_kg'])
-
-    # =========================
-    # 4️⃣ REGISTRAR ENTRADA
-    # =========================
-    Entrada.objects.create(
-        producto=producto_dieta,
-        kg=dieta.total_kg,
-        usuario=usuario,
+    messages.success(
+        request,
+        f"Dieta '{dieta.nombre}' preparada correctamente"
     )
 
-    # =========================
-    # 5️⃣ MARCAR DIETA PREPARADA
-    # =========================
-    dieta.preparada = True
-    dieta.fecha_preparacion = timezone.now()
-    dieta.save(update_fields=['preparada', 'fecha_preparacion'])
+    return redirect('lista_dietas')
