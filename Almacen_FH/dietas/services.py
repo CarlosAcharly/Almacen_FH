@@ -9,37 +9,18 @@ from .models import Dieta
 
 @transaction.atomic
 def preparar_dieta(dieta: Dieta, usuario):
-    """
-    Prepara una dieta:
-    - Descuenta ingredientes (SALIDA)
-    - Aumenta stock del producto dieta (ENTRADA)
-    - Puede ejecutarse múltiples veces
-    """
 
-    detalles = dieta.detalles.select_related(
-        'producto',
-        'producto__categoria'
-    )
+    detalles = dieta.detalles.select_related('producto')
 
     if not detalles.exists():
         raise ValidationError("La dieta no tiene ingredientes")
 
     # =========================
-    # 1️⃣ VALIDACIONES
+    # 1️⃣ VALIDAR STOCK
     # =========================
     for d in detalles:
-        producto = d.producto
         kg = Decimal(d.kg)
-
-        if kg <= 0:
-            raise ValidationError(
-                f"La cantidad de {producto.nombre} debe ser mayor a 0"
-            )
-
-        if producto.categoria.nombre != 'Ingrediente de dieta':
-            raise ValidationError(
-                f"{producto.nombre} no es un ingrediente de dieta"
-            )
+        producto = d.producto
 
         if producto.stock_kg < kg:
             raise ValidationError(
@@ -48,37 +29,31 @@ def preparar_dieta(dieta: Dieta, usuario):
             )
 
     # =========================
-    # 2️⃣ SALIDAS (INGREDIENTES)
+    # 2️⃣ SALIDAS (ingredientes)
     # =========================
     for d in detalles:
-        producto = d.producto
-        kg = Decimal(d.kg)
-
-        # Descontar stock
-        producto.stock_kg -= kg
-        producto.save(update_fields=['stock_kg'])
-
-        # Registrar salida
         Salida.objects.create(
-            producto=producto,
-            kg=kg,
+            producto=d.producto,
+            kg=d.kg,
             usuario=usuario,
-            tipo='DIETA',
-            fecha_hora=timezone.now()
+            tipo='DIETA'
         )
 
     # =========================
-    # 3️⃣ ENTRADA (DIETA TERMINADA)
+    # 3️⃣ ENTRADA (producto dieta)
     # =========================
     dieta.recalcular_total()
 
-    producto_dieta = dieta.producto_dieta
-    producto_dieta.stock_kg += dieta.total_kg
-    producto_dieta.save(update_fields=['stock_kg'])
-
     Entrada.objects.create(
-        producto=producto_dieta,
+        producto=dieta.producto_dieta,
         kg=dieta.total_kg,
         usuario=usuario,
         fecha_hora=timezone.now()
     )
+
+    # =========================
+    # 4️⃣ MARCAR COMO PREPARADA
+    # =========================
+    dieta.preparada = True
+    dieta.fecha_preparacion = timezone.now()
+    dieta.save(update_fields=['preparada', 'fecha_preparacion'])
